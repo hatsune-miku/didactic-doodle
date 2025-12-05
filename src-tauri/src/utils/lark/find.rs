@@ -2,10 +2,7 @@ use std::fs;
 
 use crate::{
     error::{WalError, WalResult},
-    utils::{
-        lark::{lark::Lark, patch::LarkPatch},
-        platform::os::join_components,
-    },
+    utils::{lark::lark::Lark, platform::os::join_components},
 };
 
 pub trait LarkFinder {
@@ -19,14 +16,6 @@ impl LarkFinder for Lark {
             None => match find_lark_path() {
                 Ok(path) => {
                     self.set_path(&path);
-                    self.set_patcher(LarkPatch::new(&path)?);
-                    let content = self
-                        .get_patcher()
-                        .unwrap()
-                        .get_messenger_chat_script_content()
-                        .unwrap();
-                    println!("content: {:?}", content);
-
                     Ok(path)
                 }
                 Err(e) => Err(e),

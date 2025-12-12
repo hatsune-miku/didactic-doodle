@@ -1,6 +1,6 @@
 import { Accordion, AccordionItem, Button, Progress } from '@heroui/react'
 import React, { useEffect, useRef, useState } from 'react'
-import { LarkSession, nativeBridge } from './ports/bridge'
+import { LarkSession, getAppVersion, nativeBridge } from './ports/bridge'
 import { makeStylesScript } from './helper/style-scripts'
 import { Log, useLogsStore } from './store/logs'
 import { DateTime } from 'luxon'
@@ -9,6 +9,7 @@ import { DoubleCheckButton } from './components/DoubleCheckButton'
 import { promptAndLoadTheme } from './theme'
 import { WalTheme } from './theme/types'
 import { joinPath } from './utils/path'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import './App.scss'
 
@@ -174,6 +175,13 @@ function App() {
       logsStore.add(`恢复备份失败: ${String(error)}`)
     }
   }
+
+  useEffect(() => {
+    getAppVersion().then((version) => {
+      logsStore.add(`当前版本: ${version}`)
+      getCurrentWindow()?.setTitle(`WAL Assistant Lark - v${version}`)
+    })
+  }, [])
 
   useEffect(() => {
     refreshPatchState()
@@ -444,7 +452,7 @@ function App() {
             </Button>
           </div>
 
-          <div className="flex flex-col gap-2 grow shrink h-full overflow-hidden text-sm">
+          <div className="flex flex-col gap-2 grow shrink h-full overflow-hidden text-sm overflow-y-auto scrollbar-hide">
             {hasPendingBackups ? (
               <div className="flex flex-col rounded-xl border border-pink-100 bg-white p-3">
                 <span>当前主题有备份可供还原。</span>

@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { getVersion } from '@tauri-apps/api/app'
 
 export type LarkSessionId = string
 
@@ -91,6 +92,10 @@ export class NativeBridge {
       callback(event.payload)
     })
   }
+}
+
+export function getAppVersion(): Promise<string> {
+  return getVersion()
 }
 
 export const nativeBridge = new NativeBridge()

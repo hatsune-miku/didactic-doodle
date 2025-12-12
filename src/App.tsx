@@ -1,4 +1,4 @@
-import { Accordion, AccordionItem, Button, Progress } from '@heroui/react'
+import { Accordion, AccordionItem, Button, Progress, Tab, Tabs } from '@heroui/react'
 import React, { useEffect, useRef, useState } from 'react'
 import { LarkSession, getAppVersion, nativeBridge } from './ports/bridge'
 import { makeStylesScript } from './helper/style-scripts'
@@ -510,17 +510,23 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen app-shell text-slate-800">
-      <div className="absolute left-0 top-0 w-full h-full flex flex-row gap-3 p-4">
-        {renderWorkingState()}
-
-        <div
-          ref={logsContainerRef}
-          className="flex flex-col h-full w-[360px] grow-0 shrink-0 overflow-x-hidden overflow-y-auto select-none rounded-2xl bg-white border border-pink-100 p-3"
-        >
-          {renderLogs(logsStore.logs)}
-        </div>
-      </div>
+    <main className="min-h-screen app-shell text-slate-800 p-4 max-h-1 overflow-hidden flex flex-col">
+      <Tabs aria-label="main tabs" variant="underlined" className="w-full main-tabs">
+        <Tab key="main" title="main" className="overflow-hidden flex w-full">
+          <div className="flex flex-row gap-3 grow">
+            {renderWorkingState()}
+            <div
+              ref={logsContainerRef}
+              className="flex flex-col h-full w-[360px] grow-0 shrink-0 overflow-x-hidden overflow-y-auto select-none rounded-2xl bg-white border border-pink-100 p-3"
+            >
+              {renderLogs(logsStore.logs)}
+            </div>
+          </div>
+        </Tab>
+        <Tab key="settings" title="settings" className="relative">
+          123123
+        </Tab>
+      </Tabs>
     </main>
   )
 }

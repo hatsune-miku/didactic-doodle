@@ -1,25 +1,30 @@
-use std::{collections::BTreeMap, path::PathBuf};
-
-use crate::error::{WalError, WalResult};
+use crate::{
+    error::{WalError, WalResult},
+    info,
+    utils::lark::patch::PatchUnit,
+};
 
 pub trait AsarPatch {
-    fn patching(
+    fn from_reader_with_patches<'a, I: IntoIterator<Item = &'a PatchUnit>>(
         reader: &asar::AsarReader,
-        custom_files: &BTreeMap<PathBuf, Vec<u8>>,
+        patch_units: I,
     ) -> WalResult<asar::AsarWriter>;
 }
 
 impl AsarPatch for asar::AsarWriter {
-    fn patching(
+    fn from_reader_with_patches<'a, I: IntoIterator<Item = &'a PatchUnit>>(
         reader: &asar::AsarReader,
-        custom_files: &BTreeMap<PathBuf, Vec<u8>>,
+        patch_units: I,
     ) -> WalResult<asar::AsarWriter> {
+        info!("creating asar writer with patches...");
         let mut writer = Self::new();
+        let mut patch_iter = patch_units.into_iter();
+
         for (path, file) in reader.files() {
-            let custom_file = custom_files.iter().find(|(p, _)| *p == path);
-            if let Some((custom_path, custom_data)) = custom_file {
+            let unit = patch_iter.find(|unit| unit.path == *path);
+            if let Some(unit) = unit {
                 writer
-                    .write_file(custom_path, custom_data, false)
+                    .write_file(unit.path.as_path(), &unit.data, false)
                     .map_err(|_| WalError::IoError)?;
             } else {
                 writer

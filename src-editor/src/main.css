@@ -1,0 +1,162 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #fafafa;
+  color: #1f2933;
+}
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  padding: 24px;
+  gap: 24px;
+}
+
+.editor-panel {
+  flex: 2;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.yaml-panel {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.patch-card {
+  border-radius: 14px;
+  border: 1px solid #f9c5d5;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.row > button {
+  flex: 0;
+  white-space: nowrap;
+}
+
+.field-label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.field-input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: #fb7299;
+  box-shadow: 0 0 0 1px rgba(251, 114, 153, 0.3);
+}
+
+.button {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.button-primary {
+  border-color: #fb7299;
+  background-color: #fb7299;
+  color: white;
+}
+
+.button-ghost {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.button + .button {
+  margin-left: 4px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.color-preview {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  aspect-ratio: 1/1;
+  min-width: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  max-width: 16px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.yaml-textarea {
+  width: 100%;
+  flex: 1;
+  resize: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 13px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.yaml-textarea:focus {
+  outline: none;
+  border-color: #fb7299;
+  box-shadow: 0 0 0 1px rgba(251, 114, 153, 0.3);
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.muted {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.error {
+  font-size: 13px;
+  color: #b91c1c;
+}

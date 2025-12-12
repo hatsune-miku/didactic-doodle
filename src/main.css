@@ -15,4 +15,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --wal-accent-color: #fb7299;
 }
+
+.app-accent-text {
+  color: var(--wal-accent-color);
+}
+
+.app-shell {
+  background-color: #ffffff;
+}
+
+

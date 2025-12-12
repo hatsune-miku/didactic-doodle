@@ -1,5 +1,6 @@
 use std::{ffi::c_void, os::windows::raw::HANDLE};
 
+use tokio::process::Command;
 use windows_sys::Win32::{
     Foundation::CloseHandle,
     System::{
@@ -98,4 +99,8 @@ pub async fn wait_until_all_processes_ended(process_name: &str) {
         };
     });
     let _ = task.await;
+}
+
+pub fn launch_process(path: &str) {
+    let _ = Command::new(path).spawn();
 }

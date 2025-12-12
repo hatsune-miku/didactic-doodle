@@ -2,6 +2,7 @@ use std::fs;
 
 use crate::{
     error::{WalError, WalResult},
+    info,
     utils::{lark::lark::Lark, platform::os::join_components},
 };
 
@@ -30,5 +31,8 @@ fn find_lark_path() -> WalResult<String> {
     let install_dir = key.get_string("InstallDir")?;
     let lark_ini_path = join_components(&[&install_dir, "lark.ini"])?;
     let lark_ini_content = fs::read_to_string(&lark_ini_path).map_err(|_| WalError::IoError)?;
+    let lark_ini_content = lark_ini_content.trim();
+
+    info!("lark active version: {}", lark_ini_content);
     join_components(&[&install_dir, &lark_ini_content])
 }

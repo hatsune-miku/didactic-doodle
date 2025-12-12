@@ -5,6 +5,10 @@ pub enum WalError {
     RegistryError,
     SystemEncodingError,
     AsarStructureError,
+    PatternNotFoundError,
+    SessionNotFoundError,
+    InvalidCommandError,
+    AlreadyPatchedError,
 }
 
 impl From<windows_result::Error> for WalError {

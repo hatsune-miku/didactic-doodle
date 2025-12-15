@@ -101,16 +101,20 @@ fn setup_debug(_: &mut tauri::App) {
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     if tauri::is_dev() {
         setup_debug(app);
+    } else {
+        let windows_map = app.webview_windows();
+        let windows = windows_map.values().collect::<Vec<_>>();
+        windows.iter().for_each(|w| {
+            let _ = w.eval(
+                r#"window.addEventListener('DOMContentLoaded', () => {
+                    document.body.oncontextmenu = function(e) { e.preventDefault(); return false };
+                    const style = document.createElement('style');
+                    style.textContent = '*, *::before, *::after { user-select: none !important; -webkit-user-select: none !important; }';
+                    document.head.appendChild(style);
+                })"#,
+            );
+        });
     }
-    let windows_map = app.webview_windows();
-    let windows = windows_map.values().collect::<Vec<_>>();
-    windows.iter().for_each(|w| {
-        let _ = w.eval(
-            r#"window.addEventListener('DOMContentLoaded', () => {
-                document.body.oncontextmenu = function(e) { e.preventDefault(); return false };
-            })"#,
-        );
-    });
     subscribe_log(app.handle());
     Ok(())
 }

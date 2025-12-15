@@ -1,0 +1,141 @@
+@use '../../styles/variables' as *;
+
+.lark-tools-page {
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: $wal-surface-elevated;
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  border: 1px solid $wal-border;
+  position: relative;
+  min-height: 0;
+}
+
+.lark-tools-header {
+  margin-bottom: 24px;
+}
+
+.lark-tools-title {
+  font-size: 24px;
+  font-weight: 300;
+  color: $wal-primary;
+  margin: 0 0 10px 0;
+  letter-spacing: 2px;
+}
+
+.lark-tools-divider {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, $wal-primary 0%, $wal-primary-light 100%);
+  border-radius: 3px;
+}
+
+.lark-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  position: relative;
+  transition: opacity 0.3s ease;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  &.is-working {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+.lark-tool-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 18px;
+  border: 1px solid $wal-border;
+  box-shadow: $wal-shadow;
+  transition: all 0.25s cubic-bezier(0.29, 0, 0, 1);
+
+  &.is-disabled {
+    opacity: 0.25;
+    pointer-events: none;
+  }
+}
+
+.lark-tool-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lark-tool-info {
+  flex: 1;
+}
+
+.lark-tool-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.3px;
+}
+
+.lark-tool-hint {
+  font-size: 12px;
+  color: $wal-text-muted;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.lark-tool-button {
+  background: $wal-gradient-soft !important;
+  color: $wal-primary !important;
+  border: 1px solid $wal-border !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 8px 18px !important;
+  min-width: auto !important;
+  height: auto !important;
+  transition: all 0.2s cubic-bezier(0.29, 0, 0, 1) !important;
+
+  &:hover {
+    background: $wal-gradient-soft-hover !important;
+    border-color: $wal-border-hover !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($wal-primary, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+.lark-tools-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  border-radius: 16px;
+}
+
+.lark-tools-spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.lark-tools-spinner {
+  color: $wal-primary !important;
+}
+
+.lark-tools-loading-text {
+  font-size: 14px;
+  color: $wal-primary;
+  font-weight: 500;
+}

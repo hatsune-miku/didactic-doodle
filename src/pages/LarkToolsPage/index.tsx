@@ -1,8 +1,10 @@
-import { Button, Card, CardBody, CardHeader, Spinner } from '@heroui/react'
+import { Button, Spinner } from '@heroui/react'
 import { nativeBridge } from '../../ports/bridge'
 import { useState } from 'react'
 import classNames from 'classnames'
 import { DoubleCheckButton } from '../../components/DoubleCheckButton'
+import './index.scss'
+import { useLogsStore } from '../../store/logs'
 
 interface Tool {
   title: string
@@ -48,6 +50,7 @@ export default function LarkToolsPage() {
 
   async function restoreToOfficialVersion() {
     if (await nativeBridge.isLarkRunning()) {
+      useLogsStore.getState().add('飞书正在运行，请先关闭')
       return
     }
     return nativeBridge.withLarkSession((s) => {
@@ -67,24 +70,21 @@ export default function LarkToolsPage() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-3 p-3 text-slate-800">
-      <Card className="border border-pink-100 bg-pink-50" shadow="none">
-        <CardHeader className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium text-slate-900">工具箱</p>
-          </div>
-        </CardHeader>
-        <CardBody className="grid gap-2 sm:grid-cols-2">
-          {tools.map((tool) => (
-            <div
-              key={tool.title}
-              className={classNames('rounded-lg border border-pink-100 bg-white px-3 py-2 flex flex-col gap-2', {
-                'opacity-20': workingTool,
-                'blur-[1px]': workingTool,
-              })}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-slate-900">{tool.title}</p>
+    <div className="lark-tools-page overflow-y-auto scrollbar-hide">
+      <div className={classNames('lark-tools-grid', { 'is-working': workingTool })}>
+        {tools.map((tool) => (
+          <div
+            key={tool.title}
+            className={classNames('lark-tool-card', {
+              'is-disabled': workingTool && workingTool !== tool,
+            })}
+          >
+            <div className="lark-tool-content">
+              <div className="lark-tool-info flex-row flex items-center justify-between">
+                <div className="flex flex-col">
+                  <h3 className="lark-tool-title">{tool.title}</h3>
+                  <p className="lark-tool-hint">{tool.hint}</p>
+                </div>
                 {tool.doubleCheck ? (
                   <DoubleCheckButton
                     onDoubleChecked={handleExecuteTool(tool)}
@@ -92,26 +92,28 @@ export default function LarkToolsPage() {
                     temporaryDisableText="执行中"
                     size="sm"
                     variant="flat"
+                    className="lark-tool-button"
                   >
                     {tool.button || '启动'}
                   </DoubleCheckButton>
                 ) : (
-                  <Button size="sm" variant="flat" onPress={handleExecuteTool(tool)}>
+                  <Button size="sm" variant="flat" onPress={handleExecuteTool(tool)} className="lark-tool-button">
                     {tool.button || '启动'}
                   </Button>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500">{tool.hint}</p>
             </div>
-          ))}
-          {workingTool ? (
-            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center gap-4">
-              <Spinner size="md" variant="simple" />
-              <span className="text-sm">{workingTool.title} 执行中...</span>
-            </div>
-          ) : null}
-        </CardBody>
-      </Card>
+          </div>
+        ))}
+      </div>
+      {workingTool ? (
+        <div className="lark-tools-overlay">
+          <div className="lark-tools-spinner-wrapper">
+            <Spinner size="lg" className="lark-tools-spinner" />
+            <span className="lark-tools-loading-text">{workingTool.title} 执行中...</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

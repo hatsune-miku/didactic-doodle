@@ -1,33 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { makeStylesScript } from '../../helper/style-scripts'
 import { LarkSession, nativeBridge } from '../../ports/bridge'
 import { promptAndLoadTheme } from '../../theme'
-import { WalTheme } from '../../theme/types'
 import { useLogsStore } from '../../store/logs'
 import { joinPath } from '../../utils/path'
 import { useWindowTitle } from '../../utils/use-title'
-
-export interface PatchState {
-  hasBackup: boolean
-}
-
-export type WorkingState = 'idle' | 'working' | 'done' | 'error'
+import { PatchState, useThemeEngineStore } from '../../store/theme-engine'
 
 export function useThemeLoaderViewModel() {
   const logsStore = useLogsStore()
+  const themeEngineStore = useThemeEngineStore()
+
   const windowTitle = useWindowTitle()
 
   const sessionRef = useRef<LarkSession | null>(null)
   const larkBasePathRef = useRef<string | null>(null)
 
-  const [workingState, setWorkingState] = useState<WorkingState>('idle')
-  const [activeTheme, setActiveTheme] = useState<WalTheme | null>(null)
-  const [patchStateMap, setPatchStateMap] = useState<Record<string, PatchState>>({})
-  const [currentProgress, setCurrentProgress] = useState(0)
-  const [maxProgress, setMaxProgress] = useState(0)
-
-  const hasPendingBackups = Object.values(patchStateMap).some((state) => state.hasBackup)
+  const hasPendingBackups = Object.values(themeEngineStore.patchStateMap).some((state) => state.hasBackup)
 
   async function ensureSession(): Promise<LarkSession> {
     if (sessionRef.current) {
@@ -43,7 +33,7 @@ export function useThemeLoaderViewModel() {
   }
 
   function getPatchState(asarFile: string): PatchState {
-    return patchStateMap[asarFile] || { hasBackup: false }
+    return themeEngineStore.patchStateMap[asarFile] || { hasBackup: false }
   }
 
   async function handleLoadTheme() {
@@ -52,7 +42,7 @@ export function useThemeLoaderViewModel() {
       logsStore.add('加载主题失败')
       return
     }
-    setActiveTheme(theme)
+    themeEngineStore.setActiveTheme(theme)
   }
 
   async function handleApplyPatch() {
@@ -61,16 +51,16 @@ export function useThemeLoaderViewModel() {
       return
     }
 
-    if (!activeTheme) {
+    if (!themeEngineStore.activeTheme) {
       logsStore.add('请先加载主题')
       return
     }
 
-    setWorkingState('working')
+    themeEngineStore.setWorkingState('working')
     try {
-      const entries = Object.entries(activeTheme.asarPatches)
-      setCurrentProgress(0)
-      setMaxProgress(entries.length)
+      const entries = Object.entries(themeEngineStore.activeTheme.asarPatches)
+      themeEngineStore.setCurrentProgress(0)
+      themeEngineStore.setMaxProgress(entries.length)
 
       for (const [asarFile, patches] of entries) {
         if (!patches || patches.length === 0) {
@@ -105,13 +95,13 @@ export function useThemeLoaderViewModel() {
         } catch (error) {
           logsStore.add(`写入文件失败: ${String(error)}`)
         }
-        setCurrentProgress((prev) => prev + 1)
+        themeEngineStore.incrementCurrentProgress()
       }
-      setCurrentProgress(maxProgress)
-      setWorkingState('done')
+      themeEngineStore.setCurrentProgress(themeEngineStore.maxProgress)
+      themeEngineStore.setWorkingState('done')
     } catch (error) {
-      setCurrentProgress(0)
-      setWorkingState('error')
+      themeEngineStore.setCurrentProgress(0)
+      themeEngineStore.setWorkingState('error')
       logsStore.add(`应用补丁失败: ${String(error)}`)
     }
 
@@ -119,11 +109,11 @@ export function useThemeLoaderViewModel() {
   }
 
   async function refreshPatchState() {
-    if (!activeTheme) {
+    if (!themeEngineStore.activeTheme) {
       return
     }
     const session = await ensureSession()
-    const patches = activeTheme.asarPatches
+    const patches = themeEngineStore.activeTheme.asarPatches
     const asarFiles = Object.keys(patches)
     const nextPatchStateMap: Record<string, PatchState> = {}
 
@@ -144,7 +134,7 @@ export function useThemeLoaderViewModel() {
       })
     )
 
-    setPatchStateMap(nextPatchStateMap)
+    themeEngineStore.setPatchStateMap(nextPatchStateMap)
   }
 
   async function handleRestoreAllBackups() {
@@ -153,7 +143,7 @@ export function useThemeLoaderViewModel() {
       return
     }
     const session = await ensureSession()
-    const asarFiles = Object.keys(patchStateMap)
+    const asarFiles = Object.keys(themeEngineStore.patchStateMap)
     for (const asarFile of asarFiles) {
       await session.restoreBackup(joinPath(larkBasePathRef.current!, asarFile))
     }
@@ -180,16 +170,16 @@ export function useThemeLoaderViewModel() {
 
   function handleFinishAndLaunchLark() {
     nativeBridge.launchLark()
-    setWorkingState('idle')
+    themeEngineStore.setWorkingState('idle')
   }
 
   function handleFinishAndRestoreBackups() {
     handleRestoreAllBackups()
-    setWorkingState('idle')
+    themeEngineStore.setWorkingState('idle')
   }
 
   function handleFinish() {
-    setWorkingState('idle')
+    themeEngineStore.setWorkingState('idle')
   }
 
   useEffect(() => {
@@ -198,7 +188,7 @@ export function useThemeLoaderViewModel() {
 
   useEffect(() => {
     refreshPatchState()
-  }, [activeTheme])
+  }, [themeEngineStore.activeTheme])
 
   useEffect(() => {
     nativeBridge.getLarkBasePath().then((path) => {
@@ -214,12 +204,11 @@ export function useThemeLoaderViewModel() {
   }, [])
 
   return {
-    logs: logsStore.logs,
-    workingState,
-    activeTheme,
+    workingState: themeEngineStore.workingState,
+    activeTheme: themeEngineStore.activeTheme,
     hasPendingBackups,
-    currentProgress,
-    maxProgress,
+    currentProgress: themeEngineStore.currentProgress,
+    maxProgress: themeEngineStore.maxProgress,
     handleKillLark,
     handleLoadTheme,
     handleApplyPatch,

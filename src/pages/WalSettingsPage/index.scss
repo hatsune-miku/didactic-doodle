@@ -1,0 +1,208 @@
+@use '../../styles/variables' as *;
+
+.wal-settings-page {
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: $wal-surface-elevated;
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  border: 1px solid $wal-border;
+  position: relative;
+  overflow: hidden;
+}
+
+.wal-settings-card {
+  border-radius: 14px !important;
+  border: 1px solid $wal-border !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: $wal-shadow !important;
+  padding: 0 !important;
+  overflow: hidden;
+  transition: all 0.25s ease;
+
+  &:hover {
+    border-color: $wal-border-hover !important;
+    box-shadow: $wal-shadow-hover !important;
+  }
+
+  > div {
+    padding: 18px !important;
+  }
+}
+
+.wal-settings-header {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.wal-settings-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wal-settings-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $wal-text;
+  letter-spacing: 0.3px;
+}
+
+.wal-settings-message {
+  font-size: 12px;
+  color: $wal-primary;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.wal-settings-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.wal-settings-button {
+  background: $wal-gradient-soft !important;
+  color: $wal-primary !important;
+  border: 1px solid $wal-border !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+  min-width: auto !important;
+  height: auto !important;
+  transition: all 0.2s cubic-bezier(0.29, 0, 0, 1) !important;
+
+  &:hover {
+    background: $wal-gradient-soft-hover !important;
+    border-color: $wal-border-hover !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($wal-primary, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &[data-color='primary'] {
+    background: $wal-gradient-primary !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 8px rgba($wal-primary, 0.25);
+
+    &:hover {
+      filter: brightness(0.95);
+      box-shadow: 0 4px 16px rgba($wal-primary, 0.35);
+    }
+  }
+}
+
+.wal-settings-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 14px;
+  border: 1px solid $wal-border;
+  background: rgba($wal-primary, 0.04);
+  backdrop-filter: blur(12px);
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.wal-settings-progress-text {
+  font-size: 12px;
+  color: $wal-text-muted;
+  font-weight: 500;
+}
+
+.wal-settings-update-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 14px;
+  border: 1px solid $wal-success-border;
+  background: $wal-success-bg;
+  backdrop-filter: blur(12px);
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.wal-settings-update-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $wal-success;
+}
+
+.wal-settings-update-body {
+  font-size: 12px;
+  color: $wal-success-light;
+  line-height: 1.5;
+}
+
+.wal-settings-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0 !important;
+}
+
+.wal-settings-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $wal-primary;
+  letter-spacing: 0.3px;
+}
+
+.wal-settings-divider {
+  border-color: $wal-border !important;
+  margin: 0 !important;
+}
+
+.wal-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: $wal-text;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.wal-settings-list-item {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  font-size: 13px;
+  padding: 8px 12px;
+  background: rgba($wal-primary, 0.04);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba($wal-primary, 0.08);
+  }
+
+  span:first-child {
+    margin-top: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $wal-primary;
+    flex-shrink: 0;
+  }
+
+  span:last-child {
+    line-height: 1.5;
+  }
+}

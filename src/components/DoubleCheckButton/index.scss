@@ -1,3 +1,27 @@
+@use '../../styles/variables' as *;
+
 .double-check-button {
-  transition: all 0.3s ease-in-out !important;
+  transition: all 0.25s cubic-bezier(0.29, 0, 0, 1) !important;
+
+  &[data-color='danger'] {
+    background: $wal-warning-bg !important;
+    color: $wal-warning !important;
+    border-color: $wal-warning-border !important;
+    animation: pulse 1.5s ease-in-out infinite;
+
+    &:hover {
+      background: rgba(255, 179, 71, 0.25) !important;
+      border-color: rgba(255, 179, 71, 0.5) !important;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 179, 71, 0);
+  }
 }

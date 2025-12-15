@@ -3,6 +3,7 @@ import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { getVersion } from '@tauri-apps/api/app'
 import { Button, Card, CardBody, CardHeader, Divider, Progress } from '@heroui/react'
+import './index.scss'
 
 type Status = 'idle' | 'checking' | 'ready' | 'latest' | 'downloading' | 'error'
 
@@ -80,22 +81,22 @@ export default function WalSettingsPage() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-3 p-3 text-slate-800">
-      <Card className="border border-pink-100 bg-pink-50" shadow="none">
+    <div className="wal-settings-page">
+      <Card className="wal-settings-card" shadow="none">
         <CardBody className="space-y-3">
-          <div className="flex gap-2 flex-row items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-900">当前版本 - {currentVersion || '--'}</p>
-              {message ? <p className="text-xs text-slate-500">{message}</p> : null}
+          <div className="wal-settings-header">
+            <div className="wal-settings-info">
+              <p className="wal-settings-title">当前版本 - {currentVersion || '--'}</p>
+              {message ? <p className="wal-settings-message">{message}</p> : null}
             </div>
-            <div className="flex gap-2">
+            <div className="wal-settings-actions">
               <Button
                 color="primary"
                 variant="flat"
                 isLoading={status === 'checking'}
                 onPress={handleCheck}
                 size="sm"
-                className="bg-pink-100"
+                className="wal-settings-button"
               >
                 {status === 'checking' ? '检查中…' : '检查更新'}
               </Button>
@@ -106,7 +107,7 @@ export default function WalSettingsPage() {
                 isLoading={status === 'downloading'}
                 onPress={handleInstall}
                 size="sm"
-                className="bg-slate-100 text-slate-700"
+                className="wal-settings-button"
               >
                 {status === 'downloading' ? '下载中…' : '下载并安装'}
               </Button>
@@ -114,14 +115,14 @@ export default function WalSettingsPage() {
           </div>
 
           {status === 'downloading' && (
-            <div className="space-y-2 rounded-lg border border-pink-100 bg-white px-3 py-2">
+            <div className="wal-settings-progress-box">
               <Progress
                 size="sm"
                 value={progressValue}
                 aria-label="update-progress"
-                classNames={{ indicator: 'bg-primary', track: 'bg-pink-100' }}
+                classNames={{ indicator: 'bg-rose-400', track: 'bg-rose-100' }}
               />
-              <p className="text-[11px] text-slate-600">
+              <p className="wal-settings-progress-text">
                 已下载 {Math.round(downloaded / 1024)} KB
                 {total ? ` / ${Math.round(total / 1024)} KB` : ''}（{progressValue}%）
               </p>
@@ -129,32 +130,32 @@ export default function WalSettingsPage() {
           )}
 
           {available && status === 'ready' && (
-            <div className="space-y-2 rounded-lg border border-emerald-100 bg-white px-3 py-2">
-              <p className="text-xs font-semibold text-emerald-700">
+            <div className="wal-settings-update-box">
+              <p className="wal-settings-update-title">
                 新版本 {available.version}（当前 {available.currentVersion}）
               </p>
               {available.body ? (
-                <p className="text-[11px] text-emerald-700">{available.body}</p>
+                <p className="wal-settings-update-body">{available.body}</p>
               ) : (
-                <p className="text-[11px] text-emerald-700">没有提供更新说明。</p>
+                <p className="wal-settings-update-body">没有提供更新说明。</p>
               )}
             </div>
           )}
         </CardBody>
       </Card>
 
-      <Card className="border border-pink-100 bg-white" shadow="none">
-        <CardHeader className="flex items-center justify-between">
+      <Card className="wal-settings-card" shadow="none">
+        <CardHeader className="wal-settings-card-header">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium text-slate-900">更新内容</p>
+            <p className="wal-settings-card-title">更新内容</p>
           </div>
         </CardHeader>
-        <Divider className="border-pink-100" />
+        <Divider className="wal-settings-divider" />
         <CardBody className="space-y-2">
-          <ul className="space-y-1.5 text-xs text-slate-800">
+          <ul className="wal-settings-list">
             {releaseNotes.map((item, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-pink-300" />
+              <li key={index} className="wal-settings-list-item">
+                <span />
                 <span>{item}</span>
               </li>
             ))}

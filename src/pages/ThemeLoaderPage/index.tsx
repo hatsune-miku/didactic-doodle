@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react'
 import { Accordion, AccordionItem, Button, Progress } from '@heroui/react'
-import { DoubleCheckButton } from '../../components/DoubleCheckButton'
 import { isColorLike } from './utils'
 import { useThemeLoaderViewModel } from './vm'
 import './index.scss'

@@ -47,6 +47,9 @@ export default function LarkToolsPage() {
   const [workingTool, setWorkingTool] = useState<Tool | null>(null)
 
   async function restoreToOfficialVersion() {
+    if (await nativeBridge.isLarkRunning()) {
+      return
+    }
     return nativeBridge.withLarkSession((s) => {
       return s.restoreAllBackups()
     })

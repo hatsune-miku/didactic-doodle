@@ -80,7 +80,7 @@ export function useThemeLoaderViewModel() {
         logsStore.add(`正在修改 asar 文件: ${asarFile}`)
 
         for (let index = 0; index < patches.length; index++) {
-          logsStore.add(`补丁 ${index + 1} 开始应用...`)
+          logsStore.add(`补丁 #${index + 1} 开始应用...`)
           const patch = patches[index]
           const script = makeStylesScript(patch)
 
@@ -98,7 +98,13 @@ export function useThemeLoaderViewModel() {
             })
           }
         }
-        await session.applyPatches()
+
+        logsStore.add('正在写入文件...')
+        try {
+          await session.applyPatches()
+        } catch (error) {
+          logsStore.add(`写入文件失败: ${String(error)}`)
+        }
         setCurrentProgress((prev) => prev + 1)
       }
       setCurrentProgress(maxProgress)

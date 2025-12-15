@@ -7,6 +7,14 @@ pub fn make_backup_path(path: &str) -> String {
     backup_path
 }
 
+pub fn reverse_make_backup_path(path: &str) -> String {
+    if path.contains(".wal-backup") {
+        path.replace(".wal-backup", "")
+    } else {
+        path.to_string()
+    }
+}
+
 pub fn backup_exists(path: &str) -> WalResult<bool> {
     let backup_path = make_backup_path(path);
     fs::exists(&backup_path).map_err(|_| WalError::IoError)
@@ -49,7 +57,7 @@ pub fn find_backups_recursively(path: &str) -> WalResult<Vec<String>> {
 pub fn restore_all_backups_recursively(path: &str) -> WalResult<()> {
     let backups = find_backups_recursively(path)?;
     for backup in backups {
-        restore_backup(&backup)?;
+        restore_backup(&reverse_make_backup_path(&backup))?;
     }
     Ok(())
 }

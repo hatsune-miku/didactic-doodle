@@ -152,7 +152,6 @@ impl LarkSession {
             let file = LarkAsarFile::new(base_path, asar_path.to_owned())?;
             let inner_path = file.get_main_script_path(subject)?;
             let patch = file.patch_script(&inner_path, script)?;
-            info!("found main script: {}/{}", subject, inner_path.display());
 
             if self.patch_map.contains_key(&file) {
                 self.patch_map.get_mut(&file).unwrap().insert(patch);

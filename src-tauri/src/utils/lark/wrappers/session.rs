@@ -46,6 +46,19 @@ pub fn get_lark_session(id: &str) -> Option<Arc<Mutex<LarkSession>>> {
         .cloned()
 }
 
+pub fn close_lark_session(id: &str) -> WalResult<()> {
+    let mut sessions = SESSIONS.lock().map_err(|_| WalError::LockError)?;
+    let index = sessions
+        .iter()
+        .position(|s| match s.lock() {
+            Ok(session) => session.id() == id,
+            Err(_) => false,
+        })
+        .ok_or(WalError::SessionNotFoundError)?;
+    sessions.remove(index);
+    Ok(())
+}
+
 pub fn interpret_command(session_id: &str, command: &str, args: Vec<String>) -> WalResult<String> {
     let session = get_lark_session(session_id).ok_or(WalError::SessionNotFoundError)?;
     let mut session = session.lock().map_err(|_| WalError::LockError)?;
@@ -77,6 +90,14 @@ pub fn interpret_command(session_id: &str, command: &str, args: Vec<String>) -> 
         "create_backup" => {
             session.create_backup(args[0].as_str())?;
             Ok("backup created".to_string())
+        }
+        "find_backups" => {
+            let backups = session.find_backups()?;
+            Ok(backups.join(",").to_string())
+        }
+        "restore_all_backups" => {
+            session.restore_all_backups()?;
+            Ok("all backups restored".to_string())
         }
         _ => Err(WalError::InvalidCommandError),
     }
@@ -168,5 +189,15 @@ impl LarkSession {
 
     pub fn create_backup(&self, path: &str) -> WalResult<()> {
         file::backup::create_backup(path)
+    }
+
+    pub fn find_backups(&self) -> WalResult<Vec<String>> {
+        let base_path = lark_helper_session(|helper| helper.locate())?;
+        file::backup::find_backups_recursively(&base_path)
+    }
+
+    pub fn restore_all_backups(&self) -> WalResult<()> {
+        let base_path = lark_helper_session(|helper| helper.locate())?;
+        file::backup::restore_all_backups_recursively(&base_path)
     }
 }

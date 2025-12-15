@@ -56,6 +56,19 @@ export class LarkSession {
   createBackup(path: string): Promise<void> {
     return this.nativeBridge.invokeLarkSession(this.id, 'create_backup', [path])
   }
+
+  async findBackups(): Promise<string[]> {
+    const raw = await this.nativeBridge.invokeLarkSession<string>(this.id, 'find_backups', [])
+    return raw.split(',')
+  }
+
+  restoreAllBackups(): Promise<void> {
+    return this.nativeBridge.invokeLarkSession(this.id, 'restore_all_backups', [])
+  }
+
+  close(): Promise<void> {
+    return this.nativeBridge.closeLarkSession(this.id)
+  }
 }
 
 export class NativeBridge {
@@ -63,8 +76,20 @@ export class NativeBridge {
     return invoke<string>('create_lark_session').then((id) => new LarkSession(id, this))
   }
 
+  closeLarkSession(id: LarkSessionId): Promise<void> {
+    return invoke('close_lark_session', { id })
+  }
+
   invokeLarkSession<T>(id: LarkSessionId, command: string, args: string[]): Promise<T> {
-    return invoke('invoke_lark_session', { id, command, args })
+    return invoke<T>('invoke_lark_session', { id, command, args })
+  }
+
+  async withLarkSession<T>(callback: (session: LarkSession) => Promise<T>): Promise<void> {
+    try {
+      const session = await this.createLarkSession()
+      await callback(session)
+      await session.close()
+    } catch {}
   }
 
   isLarkRunning(): Promise<boolean> {
@@ -85,6 +110,10 @@ export class NativeBridge {
 
   launchLark(): Promise<void> {
     return invoke('launch_lark')
+  }
+
+  openLarkInstallDirectory(): Promise<void> {
+    return invoke('open_lark_install_directory')
   }
 
   subscribeToLogEvents(callback: (message: string) => void): ReturnType<typeof listen<string>> {

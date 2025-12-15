@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Maple Mono NL', Menlo, Monaco, Consolas, 'Courier New', monospaced, 'PingFang SC', 'Microsoft Yahei';
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
@@ -27,4 +27,13 @@
   background-color: #ffffff;
 }
 
+.app-shell div[data-slot='base'] {
+  flex-grow: 0;
+  flex-shrink: 0;
+}
 
+.app-shell div[data-slot='panel'] {
+  flex-grow: 1;
+  flex-shrink: 1;
+  padding: 4px 0 0 0;
+}

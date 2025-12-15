@@ -52,6 +52,7 @@ impl LarkAsarPatch for LarkAsarFile {
             let skip_pattern_index = content.find(skip_pattern).unwrap();
             skip_pattern_index + skip_pattern.len() + 1
         } else {
+            info!("no skip pattern found. inserting patch at the beginning of the file...");
             0
         };
 

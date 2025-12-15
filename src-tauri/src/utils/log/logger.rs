@@ -20,9 +20,13 @@ pub fn subscribe_log(subscriber: LogSubscriber) -> WalResult<()> {
 
 pub fn log(level: &str, message: &str) {
     let subscribers = SUBSCRIBERS.lock().unwrap();
-    subscribers
-        .iter()
-        .for_each(|subscriber| subscriber(format!("{} {}", level.to_uppercase(), message)));
+    subscribers.iter().for_each(|subscriber| {
+        if level == "NONE" {
+            subscriber(message.to_string());
+        } else {
+            subscriber(format!("{} {}", level.to_uppercase(), message));
+        }
+    });
 }
 
 #[macro_export]
@@ -49,6 +53,6 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        crate::utils::log::logger::log(stringify!(INFO), &format!($($arg)*));
+        crate::utils::log::logger::log("NONE", &format!($($arg)*));
     };
 }

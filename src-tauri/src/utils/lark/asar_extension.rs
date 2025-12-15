@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     error::{WalError, WalResult},
     info,
@@ -5,23 +7,30 @@ use crate::{
 };
 
 pub trait AsarPatch {
-    fn from_reader_with_patches<'a, I: IntoIterator<Item = &'a PatchUnit>>(
+    fn from_reader_with_patches<'a, I>(
         reader: &asar::AsarReader,
         patch_units: I,
-    ) -> WalResult<asar::AsarWriter>;
+    ) -> WalResult<asar::AsarWriter>
+    where
+        I: IntoIterator<Item = &'a PatchUnit>,
+        I::IntoIter: Clone;
 }
 
 impl AsarPatch for asar::AsarWriter {
-    fn from_reader_with_patches<'a, I: IntoIterator<Item = &'a PatchUnit>>(
+    fn from_reader_with_patches<'a, I>(
         reader: &asar::AsarReader,
         patch_units: I,
-    ) -> WalResult<asar::AsarWriter> {
+    ) -> WalResult<asar::AsarWriter>
+    where
+        I: IntoIterator<Item = &'a PatchUnit>,
+        I::IntoIter: Clone,
+    {
         info!("creating asar writer with patches...");
         let mut writer = Self::new();
-        let mut patch_iter = patch_units.into_iter();
+        let iter = patch_units.into_iter();
 
         for (path, file) in reader.files() {
-            let unit = patch_iter.find(|unit| unit.path == *path);
+            let unit = iter.clone().find(|unit| unit.path == *path);
             if let Some(unit) = unit {
                 writer
                     .write_file(unit.path.as_path(), &unit.data, false)

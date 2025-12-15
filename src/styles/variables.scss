@@ -1,0 +1,42 @@
+// 核心配色 - 日式樱花粉白风
+$wal-primary: #e8788a;
+$wal-primary-light: #f5a3b1;
+$wal-primary-soft: #fcd2da;
+$wal-accent: #ff6b8a;
+
+// 表面颜色
+$wal-surface: #fff8f9;
+$wal-surface-elevated: rgba(255, 255, 255, 0.88);
+
+// 文字颜色
+$wal-text: #5d4a52;
+$wal-text-muted: #9a7d87;
+
+// 边框
+$wal-border: rgba(232, 120, 138, 0.18);
+$wal-border-hover: rgba(232, 120, 138, 0.35);
+
+// 阴影
+$wal-shadow: 0 4px 20px rgba(232, 120, 138, 0.08), 0 1px 4px rgba(232, 120, 138, 0.04);
+$wal-shadow-hover: 0 8px 32px rgba(232, 120, 138, 0.14), 0 2px 8px rgba(232, 120, 138, 0.06);
+
+// 警告/确认色 - 琥珀色
+$wal-warning: #c67b1a;
+$wal-warning-light: #d4944a;
+$wal-warning-bg: rgba(255, 179, 71, 0.15);
+$wal-warning-border: rgba(255, 179, 71, 0.3);
+
+// 成功色 - 绿色
+$wal-success: #43a047;
+$wal-success-light: #66bb6a;
+$wal-success-bg: rgba(76, 175, 80, 0.1);
+$wal-success-border: rgba(76, 175, 80, 0.25);
+
+// 渐变
+$wal-gradient-primary: linear-gradient(135deg, $wal-primary 0%, $wal-accent 100%);
+$wal-gradient-soft: linear-gradient(135deg, rgba($wal-primary, 0.12) 0%, rgba($wal-primary-light, 0.08) 100%);
+$wal-gradient-soft-hover: linear-gradient(135deg, rgba($wal-primary, 0.2) 0%, rgba($wal-primary-light, 0.15) 100%);
+
+// 背景渐变
+$wal-bg: linear-gradient(165deg, #fef4f6 0%, #fff9fa 35%, #fef0f3 70%, #fdf6f7 100%);
+

@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: 'Maple Mono NL', Menlo, Monaco, Consolas, 'Courier New', monospaced, 'PingFang SC', 'Microsoft Yahei';
-  font-size: 16px;
-  line-height: 24px;
+  font-family: 'Maple Mono NL', 'PingFang SC', 'Microsoft Yahei', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
   font-weight: 400;
 
   font-synthesis: none;
@@ -16,15 +16,73 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  --wal-accent-color: #fb7299;
+  /* 核心配色 - 日式樱花粉白风 */
+  --wal-primary: #e8788a;
+  --wal-primary-light: #f5a3b1;
+  --wal-primary-soft: #fcd2da;
+  --wal-accent: #ff6b8a;
+  --wal-surface: #fff8f9;
+  --wal-surface-elevated: rgba(255, 255, 255, 0.88);
+  --wal-bg: linear-gradient(165deg, #fef4f6 0%, #fff9fa 35%, #fef0f3 70%, #fdf6f7 100%);
+  --wal-text: #5d4a52;
+  --wal-text-muted: #9a7d87;
+  --wal-border: rgba(232, 120, 138, 0.18);
+  --wal-border-hover: rgba(232, 120, 138, 0.35);
+  --wal-shadow: 0 4px 20px rgba(232, 120, 138, 0.08), 0 1px 4px rgba(232, 120, 138, 0.04);
+  --wal-shadow-hover: 0 8px 32px rgba(232, 120, 138, 0.14), 0 2px 8px rgba(232, 120, 138, 0.06);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--wal-primary-soft) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--wal-primary-soft);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--wal-primary-light);
 }
 
 .app-accent-text {
-  color: var(--wal-accent-color);
+  color: var(--wal-primary);
 }
 
 .app-shell {
-  background-color: #ffffff;
+  background: var(--wal-bg);
+  color: var(--wal-text);
+  position: relative;
+}
+
+/* 背景装饰图案 */
+.app-shell::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 20% 20%, rgba(232, 120, 138, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(245, 163, 177, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(252, 210, 218, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .app-shell div[data-slot='base'] {
@@ -36,4 +94,74 @@
   flex-grow: 1;
   flex-shrink: 1;
   padding: 4px 0 0 0;
+}
+
+/* 通用卡片基础样式 */
+.wal-card {
+  background: var(--wal-surface-elevated);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  border: 1px solid var(--wal-border);
+  box-shadow: var(--wal-shadow);
+  transition: all 0.25s cubic-bezier(0.29, 0, 0, 1);
+}
+
+.wal-card:hover {
+  border-color: var(--wal-border-hover);
+  box-shadow: var(--wal-shadow-hover);
+}
+
+/* 通用按钮基础样式 */
+.wal-btn {
+  background: linear-gradient(135deg, rgba(232, 120, 138, 0.12) 0%, rgba(245, 163, 177, 0.08) 100%) !important;
+  color: var(--wal-primary) !important;
+  border: 1px solid var(--wal-border) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+  min-width: auto !important;
+  height: auto !important;
+  transition: all 0.2s cubic-bezier(0.29, 0, 0, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.wal-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.wal-btn:hover {
+  background: linear-gradient(135deg, rgba(232, 120, 138, 0.2) 0%, rgba(245, 163, 177, 0.15) 100%) !important;
+  border-color: var(--wal-border-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 120, 138, 0.15);
+}
+
+.wal-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.wal-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.wal-btn-primary {
+  background: linear-gradient(135deg, var(--wal-primary) 0%, var(--wal-accent) 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(232, 120, 138, 0.3);
+}
+
+.wal-btn-primary:hover {
+  background: linear-gradient(135deg, #d96e7e 0%, #e8607a 100%) !important;
+  box-shadow: 0 4px 16px rgba(232, 120, 138, 0.4);
 }

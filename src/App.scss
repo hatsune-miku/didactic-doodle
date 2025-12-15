@@ -1,3 +1,57 @@
+@use './styles/variables' as *;
+
+.main-tabs {
+  > div {
+    width: 100%;
+  }
+
+  [role='tablist'] {
+    background: $wal-surface-elevated !important;
+    border-radius: 14px !important;
+    padding: 6px !important;
+    box-shadow: $wal-shadow !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  [data-slot='cursor'],
+  [data-slot='tabList'] > span:not([role='tab']) {
+    display: none !important;
+  }
+
+  button[aria-selected='true'] {
+    [data-slot='tabContent'] {
+      color: $wal-primary !important;
+    }
+  }
+
+  [role='tab'] {
+    border-radius: 10px !important;
+    color: $wal-text-muted !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 10px 20px !important;
+    transition: all 0.25s cubic-bezier(0.29, 0, 0, 1) !important;
+    background: transparent !important;
+
+    &:hover {
+      color: $wal-primary !important;
+      background: rgba($wal-primary, 0.06) !important;
+    }
+
+    &[aria-selected='true'] {
+      background: $wal-gradient-soft !important;
+      color: $wal-primary !important;
+      font-weight: 600 !important;
+    }
+  }
+
+  [role='tabpanel'] {
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
+
 .main-accordion {
   padding: 0 !important;
 
@@ -7,16 +61,5 @@
 
   .accordion-title {
     cursor: pointer;
-  }
-
-  .sub-accordion {
-    .sub-accordion-item {
-    }
-  }
-}
-
-.main-tabs {
-  > div {
-    width: 100%;
   }
 }

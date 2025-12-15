@@ -1,0 +1,37 @@
+@use '../../styles/variables' as *;
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: center;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+}
+
+.toolbar-button {
+  background: $wal-gradient-soft !important;
+  color: $wal-primary !important;
+  border: 1px solid $wal-border !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+  min-width: auto !important;
+  height: auto !important;
+  transition: all 0.2s cubic-bezier(0.29, 0, 0, 1) !important;
+
+  &:hover {
+    background: $wal-gradient-soft-hover !important;
+    border-color: $wal-border-hover !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($wal-primary, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+}

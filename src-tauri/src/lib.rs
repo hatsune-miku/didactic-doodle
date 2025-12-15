@@ -58,10 +58,25 @@ fn create_lark_session() -> tauri::Result<String> {
 }
 
 #[tauri::command]
+fn close_lark_session(id: String) -> tauri::Result<()> {
+    session::close_lark_session(&id).map_err(|_| tauri::Error::InvokeKey)?;
+    Ok(())
+}
+
+#[tauri::command]
 fn invoke_lark_session(id: String, command: String, args: Vec<String>) -> tauri::Result<String> {
     let result =
         session::interpret_command(&id, &command, args).map_err(|_| tauri::Error::InvokeKey)?;
     Ok(result)
+}
+
+#[tauri::command]
+fn open_lark_install_directory() -> tauri::Result<()> {
+    let path = get_lark_base_path().map_err(|_| tauri::Error::InvokeKey)?;
+    let _ = tokio::process::Command::new("explorer.exe")
+        .arg(path.as_str())
+        .spawn();
+    Ok(())
 }
 
 fn subscribe_log(app: &AppHandle) {
@@ -87,6 +102,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     if tauri::is_dev() {
         setup_debug(app);
     }
+    let windows_map = app.webview_windows();
+    let windows = windows_map.values().collect::<Vec<_>>();
+    windows.iter().for_each(|w| {
+        let _ = w.eval(
+            r#"window.addEventListener('DOMContentLoaded', () => {
+                document.body.oncontextmenu = function(e) { e.preventDefault(); return false };
+            })"#,
+        );
+    });
     subscribe_log(app.handle());
     Ok(())
 }
@@ -94,6 +118,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .setup(setup)
@@ -105,6 +130,8 @@ pub fn run() {
             wait_until_lark_ended,
             create_lark_session,
             invoke_lark_session,
+            close_lark_session,
+            open_lark_install_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

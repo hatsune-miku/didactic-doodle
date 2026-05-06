@@ -30,10 +30,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVDNUUyMEIwMDQyQTFCNTQKUldSVUd5b0VzQ0JlN0ZsTVFsSm05UlhybXQyYUtyOGl6bHJYWmhzOEVnVkZSTzBUMHRleC9VR3UK",
-      "endpoints": [
-        "https://wal-api.vanillacake.cn/latest.json",
-        "https://github.com/hatsune-miku/didactic-doodle/releases/latest/download/latest.json"
-      ],
+      "endpoints": [""],
       "windows": {
         "installMode": "basicUi"
       }

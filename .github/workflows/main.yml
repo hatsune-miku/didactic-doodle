@@ -10,8 +10,6 @@ jobs:
     environment: Release
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
 
     runs-on: 'windows-latest'
     steps:
@@ -35,8 +33,6 @@ jobs:
       - uses: tauri-apps/tauri-action@v0.6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: app-v__VERSION__
           releaseName: 'App v__VERSION__'

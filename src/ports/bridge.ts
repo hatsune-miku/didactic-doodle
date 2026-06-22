@@ -16,6 +16,12 @@ export interface SubmitMainScriptPatchPayload {
   script: string
 }
 
+export interface PickedTheme {
+  /** YAML 未提供 id 时回退使用的标识（源文件名去扩展名）。 */
+  suggestedId: string
+  content: string
+}
+
 export class LarkSession {
   private readonly id: LarkSessionId
   private readonly nativeBridge: NativeBridge
@@ -116,10 +122,31 @@ export class NativeBridge {
     return invoke('open_lark_install_directory')
   }
 
-  // 通过原生侧选择并读取主题文件，绕开 webview 的文件缓存，保证每次读到的都是磁盘上的最新内容。
-  // 返回文件内容；用户取消选择时返回 null。
-  pickAndReadTheme(): Promise<string | null> {
-    return invoke<string | null>('pick_and_read_theme')
+  // 弹出文件选择框并读取选中 YAML 的内容（不写盘）。返回内容与回退 id；取消时返回 null。
+  pickThemeFile(): Promise<PickedTheme | null> {
+    return invoke<PickedTheme | null>('pick_theme_file')
+  }
+
+  // 按 id 派生文件名写入托管目录（同名覆盖），返回实际文件名。
+  saveTheme(id: string, content: string): Promise<string> {
+    return invoke<string>('save_theme', { id, content })
+  }
+
+  // 从托管目录新鲜读取一个主题文件。始终读盘，外部编辑后立即生效（绕开 webview 文件缓存）。
+  readTheme(fileName: string): Promise<string> {
+    return invoke<string>('read_theme', { fileName })
+  }
+
+  deleteTheme(fileName: string): Promise<void> {
+    return invoke('delete_theme', { fileName })
+  }
+
+  readThemeManifest(): Promise<string> {
+    return invoke<string>('read_theme_manifest')
+  }
+
+  writeThemeManifest(content: string): Promise<void> {
+    return invoke('write_theme_manifest', { content })
   }
 
   subscribeToLogEvents(callback: (message: string) => void): ReturnType<typeof listen<string>> {

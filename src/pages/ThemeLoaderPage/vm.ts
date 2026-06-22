@@ -2,22 +2,22 @@ import { useEffect, useRef } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { makeStylesScript } from '../../helper/style-scripts'
 import { LarkSession, nativeBridge } from '../../ports/bridge'
-import { promptAndLoadTheme } from '../../theme'
 import { useLogsStore } from '../../store/logs'
-import { joinPath } from '../../utils/path'
 import { useWindowTitle } from '../../utils/use-title'
-import { PatchState, useThemeEngineStore } from '../../store/theme-engine'
+import { useThemeEngineStore } from '../../store/theme-engine'
+import { useThemeLibraryStore } from '../../store/theme-library'
+import { mergeThemes } from '../../theme/merge'
 
 export function useThemeLoaderViewModel() {
   const logsStore = useLogsStore()
   const themeEngineStore = useThemeEngineStore()
+  const library = useThemeLibraryStore()
 
   const windowTitle = useWindowTitle()
 
   const sessionRef = useRef<LarkSession | null>(null)
-  const larkBasePathRef = useRef<string | null>(null)
 
-  const hasPendingBackups = Object.values(themeEngineStore.patchStateMap).some((state) => state.hasBackup)
+  const enabledCount = library.items.filter((item) => item.entry.enabled).length
 
   async function ensureSession(): Promise<LarkSession> {
     if (sessionRef.current) {
@@ -28,45 +28,33 @@ export function useThemeLoaderViewModel() {
     return session
   }
 
-  function handleKillLark() {
-    nativeBridge.killLark()
-  }
-
-  function getPatchState(asarFile: string): PatchState {
-    return themeEngineStore.patchStateMap[asarFile] || { hasBackup: false }
-  }
-
-  async function handleLoadTheme() {
-    const theme = await promptAndLoadTheme()
-    if (!theme) {
-      logsStore.add('加载主题失败')
-      return
-    }
-    themeEngineStore.setActiveTheme(theme)
-  }
-
-  async function handleApplyPatch() {
+  async function handleApply() {
     if (await nativeBridge.isLarkRunning()) {
       logsStore.add('飞书正在运行，请先关闭')
       return
     }
 
-    if (!themeEngineStore.activeTheme) {
-      logsStore.add('请先加载主题')
-      return
-    }
+    // 对账式应用：先把所有备份还原回官方原版，再把当前勾选的合并应用上去。
+    // 因此「不勾选任何主题 + 应用」= 纯还原 = 官方原版。
+    const themes = await library.collectEnabledThemes()
+    const merged = mergeThemes(themes)
+    const entries = Object.entries(merged.asarPatches).filter(([, patches]) => patches && patches.length > 0)
 
     themeEngineStore.setWorkingState('working')
     try {
-      const entries = Object.entries(themeEngineStore.activeTheme.asarPatches)
       themeEngineStore.setCurrentProgress(0)
-      themeEngineStore.setMaxProgress(entries.length)
+      themeEngineStore.setMaxProgress(entries.length + 1)
+
+      const session = await ensureSession()
+      logsStore.add('正在还原到官方原版...')
+      try {
+        await session.restoreAllBackups()
+      } catch (error) {
+        logsStore.add(`还原失败: ${String(error)}`)
+      }
+      themeEngineStore.incrementCurrentProgress()
 
       for (const [asarFile, patches] of entries) {
-        if (!patches || patches.length === 0) {
-          continue
-        }
-        const session = await ensureSession()
         logsStore.add(`正在修改 asar 文件: ${asarFile}`)
 
         for (let index = 0; index < patches.length; index++) {
@@ -75,17 +63,9 @@ export function useThemeLoaderViewModel() {
           const script = makeStylesScript(patch)
 
           if (patch.kind === 'main-script') {
-            await session.submitMainScriptPatch({
-              asarPath: asarFile,
-              subject: patch.subject,
-              script,
-            })
+            await session.submitMainScriptPatch({ asarPath: asarFile, subject: patch.subject, script })
           } else {
-            await session.submitPatch({
-              asarPath: asarFile,
-              innerPath: patch.path,
-              script,
-            })
+            await session.submitPatch({ asarPath: asarFile, innerPath: patch.path, script })
           }
         }
 
@@ -108,64 +88,34 @@ export function useThemeLoaderViewModel() {
     logsStore.add('=== 任务结束 ===')
   }
 
-  async function refreshPatchState() {
-    if (!themeEngineStore.activeTheme) {
-      return
-    }
-    const session = await ensureSession()
-    const patches = themeEngineStore.activeTheme.asarPatches
-    const asarFiles = Object.keys(patches)
-    const nextPatchStateMap: Record<string, PatchState> = {}
-
-    await Promise.all(
-      asarFiles.map(async (asarFile) => {
-        const fullPath = joinPath(larkBasePathRef.current!, asarFile)
-        const prev = getPatchState(asarFile)
-        let hasBackup = prev.hasBackup
-        try {
-          hasBackup = await session.backupExists(fullPath)
-        } catch {
-          hasBackup = prev.hasBackup
-        }
-        nextPatchStateMap[asarFile] = {
-          ...prev,
-          hasBackup,
-        }
-      })
-    )
-
-    themeEngineStore.setPatchStateMap(nextPatchStateMap)
-  }
-
   async function handleRestoreAllBackups() {
     if (await nativeBridge.isLarkRunning()) {
       logsStore.add('飞书正在运行，请先关闭')
       return
     }
-    const session = await ensureSession()
-    const asarFiles = Object.keys(themeEngineStore.patchStateMap)
-    for (const asarFile of asarFiles) {
-      await session.restoreBackup(joinPath(larkBasePathRef.current!, asarFile))
-    }
-    logsStore.add('所有备份已恢复')
-    refreshPatchState()
-  }
-
-  async function handleRestoreBackup(asarFile: string) {
-    if (await nativeBridge.isLarkRunning()) {
-      logsStore.add('飞书正在运行，请先关闭')
-      return
-    }
-
     try {
       const session = await ensureSession()
-      const fullPath = joinPath(larkBasePathRef.current!, asarFile)
-      await session.restoreBackup(fullPath)
-      logsStore.add(`已恢复备份: ${asarFile}`)
-      refreshPatchState()
+      await session.restoreAllBackups()
+      logsStore.add('所有备份已恢复')
     } catch (error) {
       logsStore.add(`恢复备份失败: ${String(error)}`)
     }
+  }
+
+  function handleImport() {
+    return library.importTheme()
+  }
+
+  function handleRemove(id: string) {
+    return library.removeTheme(id)
+  }
+
+  function handleToggle(id: string) {
+    return library.toggleEnabled(id)
+  }
+
+  function handleReorder(orderedIds: string[]) {
+    return library.reorder(orderedIds)
   }
 
   function handleFinishAndLaunchLark() {
@@ -187,13 +137,9 @@ export function useThemeLoaderViewModel() {
   }, [windowTitle])
 
   useEffect(() => {
-    refreshPatchState()
-  }, [themeEngineStore.activeTheme])
-
-  useEffect(() => {
+    library.load()
     nativeBridge.getLarkBasePath().then((path) => {
       logsStore.add(`找到飞书路径: ${path}`)
-      larkBasePathRef.current = path
     })
     const unsubscribe = nativeBridge.subscribeToLogEvents((message) => {
       logsStore.add(message)
@@ -201,22 +147,23 @@ export function useThemeLoaderViewModel() {
     return () => {
       unsubscribe.then((unsubscribe) => unsubscribe())
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {
     workingState: themeEngineStore.workingState,
-    activeTheme: themeEngineStore.activeTheme,
-    hasPendingBackups,
     currentProgress: themeEngineStore.currentProgress,
     maxProgress: themeEngineStore.maxProgress,
-    handleKillLark,
-    handleLoadTheme,
-    handleApplyPatch,
+    items: library.items,
+    enabledCount,
+    handleImport,
+    handleApply,
+    handleRemove,
+    handleToggle,
+    handleReorder,
     handleRestoreAllBackups,
-    handleRestoreBackup,
     handleFinishAndLaunchLark,
     handleFinishAndRestoreBackups,
     handleFinish,
-    getPatchState,
   }
 }

@@ -30,6 +30,10 @@ function createEmptyFilePatch(): WalAsarPatchFile {
 
 function createEmptyTheme(): WalTheme {
   return {
+    id: '',
+    name: '',
+    description: '',
+    author: '',
     asarPatches: {},
   }
 }
@@ -221,6 +225,10 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
+
+  function handleChangeMeta(field: 'id' | 'name' | 'description' | 'author', value: string) {
+    applyThemeUpdate((prev) => ({ ...prev, [field]: value }), false)
+  }
 
   function handleAddPatch(kind: WalAsarPatch['kind']) {
     const asarPath = window.prompt('输入 asar 路径（作为键，例如 webcontent/messenger-next.asar）')
@@ -562,6 +570,47 @@ function App() {
         </div>
 
         {parseError ? <div className="error">解析失败: {parseError}</div> : null}
+
+        <div className="patch-card">
+          <div className="section-title">主题信息</div>
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <div className="field-label">id（唯一，留空则导入时用文件名）</div>
+              <input
+                className="field-input"
+                value={theme.id || ''}
+                onChange={(e) => handleChangeMeta('id', e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="field-label">名称</div>
+              <input
+                className="field-input"
+                value={theme.name || ''}
+                onChange={(e) => handleChangeMeta('name', e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="field-label">作者</div>
+              <input
+                className="field-input"
+                value={theme.author || ''}
+                onChange={(e) => handleChangeMeta('author', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <div className="field-label">描述</div>
+              <textarea
+                className="field-input"
+                style={{ minHeight: 56 }}
+                value={theme.description || ''}
+                onChange={(e) => handleChangeMeta('description', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="row" style={{ justifyContent: 'flex-start' }}>
           <span className="field-label">asar 补丁</span>

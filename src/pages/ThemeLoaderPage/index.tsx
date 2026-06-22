@@ -1,187 +1,66 @@
-import React, { useMemo } from 'react'
-import { Accordion, AccordionItem, Button, Progress } from '@heroui/react'
-import { isColorLike } from './utils'
+import { useState } from 'react'
+import { Reorder, useDragControls } from 'framer-motion'
+import { Button, Checkbox, Progress } from '@heroui/react'
+import classNames from 'classnames'
+import { LibraryItem, themeDisplayName } from '../../store/theme-library'
+import { ThemePatchView } from './ThemePatchView'
 import { useThemeLoaderViewModel } from './vm'
 import './index.scss'
 
 export default function ThemeLoaderPage() {
   const vm = useThemeLoaderViewModel()
 
-  const renderActiveTheme = useMemo(() => {
-    if (!vm.activeTheme) {
+  function renderThemeList() {
+    if (vm.items.length === 0) {
       return (
         <div className="theme-loader-empty">
-          尚未加载主题配置文件。
-          <Button onPress={vm.handleLoadTheme} variant="flat" size="sm" className="theme-loader-button">
-            加载主题
-          </Button>
+          <span>还没有任何主题。</span>
+          <span>点击「导入主题」添加一个 YAML 主题，勾选后即可一起应用。</span>
         </div>
       )
     }
-    const patchesByAsar = vm.activeTheme.asarPatches
-    const asarFiles = Object.keys(patchesByAsar)
-    if (asarFiles.length === 0) {
-      return <span className="text-xs text-gray-500">当前主题不包含任何补丁</span>
-    }
 
     return (
-      <Accordion
-        defaultExpandedKeys={asarFiles}
-        className="theme-loader-accordion"
-        dividerProps={{
-          style: {
-            backgroundColor: 'transparent',
-            height: '4px',
-          },
-        }}
+      <Reorder.Group
+        as="div"
+        axis="y"
+        values={vm.items.map((item) => item.entry.id)}
+        onReorder={vm.handleReorder}
+        className="theme-list"
       >
-        {asarFiles.map((asarFile) => {
-          const patchList = patchesByAsar[asarFile] || []
-          const state = vm.getPatchState(asarFile)
-
-          return (
-            <AccordionItem
-              key={asarFile}
-              aria-label={asarFile}
-              className="theme-loader-accordion-item"
-              isCompact
-              title={
-                <div className="flex items-center justify-between gap-2 accordion-title">
-                  <div className="flex flex-col theme-loader-accordion-title">
-                    <span className="font-medium">{asarFile}</span>
-                    <span className="accordion-title">{state.hasBackup ? '有备份' : ''}</span>
-                  </div>
-                  {state.hasBackup ? (
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      color="primary"
-                      onPress={() => vm.handleRestoreBackup(asarFile)}
-                      className="theme-loader-button"
-                    >
-                      还原备份
-                    </Button>
-                  ) : null}
-                </div>
-              }
-            >
-              <div className="flex flex-col gap-4 text-xs">
-                {patchList.length === 0 ? (
-                  <div className="text-[11px]" style={{ color: '#8b6f7e', opacity: 0.7 }}>
-                    此 asar 没有补丁。
-                  </div>
-                ) : (
-                  <Accordion isCompact className="sub-accordion">
-                    {patchList.map((patch, index) => {
-                      const styleSelectors = Object.keys(patch.styleOverridesBySelector || {})
-                      const colorKeys = Object.keys(patch.colorOverrides || {})
-
-                      return (
-                        <AccordionItem
-                          key={index}
-                          className="overflow-hidden theme-loader-patch-item"
-                          startContent={
-                            <span className="font-medium flex flex-row gap-1 w-full accordion-title">
-                              <span>补丁 #{index + 1}</span>
-                              <React.Fragment>
-                                {patch.description ? ` · ${patch.description}` : ''}
-                                <span>·</span>
-                                <span className="font-medium" style={{ color: '#8b6f7e', opacity: 0.7 }}>
-                                  {patch.kind === 'main-script' ? '主脚本' : '文件'}
-                                </span>
-                              </React.Fragment>
-                            </span>
-                          }
-                          HeadingComponent="span"
-                        >
-                          <div key={`${asarFile}-patch-${index}`} className="theme-loader-patch-content">
-                            <div className="font-medium">样式 ({styleSelectors.length})</div>
-                            {styleSelectors.map((selector) => {
-                              const declarations = patch.styleOverridesBySelector[selector]
-                              const entries = Object.entries(declarations)
-                              return (
-                                <div key={`${asarFile}-selector-${selector}-${index}`} className="mt-1">
-                                  <div className="font-mono text-[11px]" style={{ color: '#8b6f7e' }}>
-                                    {selector}
-                                  </div>
-                                  <div className="text-[11px] break-all" style={{ color: '#8b6f7e', opacity: 0.8 }}>
-                                    {entries.map(([prop, value]) => (
-                                      <div key={prop} className="flex items-start gap-1">
-                                        <span className="font-mono shrink-0">{prop}:</span>
-                                        <ColorPreview value={value} />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )
-                            })}
-
-                            <div className="font-medium">颜色 ({colorKeys.length})</div>
-                            {colorKeys.map((key) => (
-                              <div
-                                key={`${asarFile}-color-${key}-${index}`}
-                                className="text-[11px]"
-                                style={{ color: '#8b6f7e', opacity: 0.8 }}
-                              >
-                                <span className="font-mono">{key}</span>
-                                <span className="mx-1">→</span>
-                                <ColorPreview value={patch.colorOverrides[key]} />
-                              </div>
-                            ))}
-
-                            {patch.customScript ? (
-                              <React.Fragment>
-                                <div className="font-medium">自定义脚本</div>
-                                <div className="theme-loader-code-block">{patch.customScript}</div>
-                              </React.Fragment>
-                            ) : null}
-                          </div>
-                        </AccordionItem>
-                      )
-                    })}
-                  </Accordion>
-                )}
-              </div>
-            </AccordionItem>
-          )
-        })}
-      </Accordion>
+        {vm.items.map((item) => (
+          <ThemeRow
+            key={item.entry.id}
+            item={item}
+            onToggle={() => vm.handleToggle(item.entry.id)}
+            onRemove={() => vm.handleRemove(item.entry.id)}
+          />
+        ))}
+      </Reorder.Group>
     )
-  }, [vm.activeTheme, vm.getPatchState, vm.handleLoadTheme])
+  }
 
   function renderWorkingState() {
     if (vm.workingState === 'idle') {
       return (
         <div className="theme-loader-content">
           <div className="theme-loader-actions">
-            <Button onPress={vm.handleLoadTheme} variant="flat" size="sm" className="theme-loader-button">
-              加载主题
+            <Button onPress={vm.handleImport} variant="flat" size="sm" className="theme-loader-button">
+              导入主题
             </Button>
             <Button
-              onPress={vm.handleApplyPatch}
-              disabled={!vm.activeTheme}
+              onPress={vm.handleApply}
               variant="flat"
               size="sm"
               color="primary"
               className="theme-loader-button"
               style={{ flex: 1 }}
             >
-              开始应用主题
+              {vm.enabledCount > 0 ? `应用启用的主题 (${vm.enabledCount})` : '应用（还原为官方原版）'}
             </Button>
           </div>
 
-          <div className="theme-loader-scroll">
-            {vm.hasPendingBackups ? (
-              <div className="theme-loader-backup-notice">
-                <span>当前主题有备份可供还原。</span>
-                <span>还原后，对应部位将变回官方原版。</span>
-                <Button onPress={vm.handleRestoreAllBackups} variant="flat" size="sm" className="theme-loader-button">
-                  一键还原所有备份
-                </Button>
-              </div>
-            ) : null}
-            {renderActiveTheme}
-          </div>
+          <div className="theme-loader-scroll">{renderThemeList()}</div>
         </div>
       )
     }
@@ -236,18 +115,95 @@ export default function ThemeLoaderPage() {
   return <div className="theme-loader-page">{renderWorkingState()}</div>
 }
 
-function ColorPreview(props: { value: string }) {
-  const { value } = props
-  if (!isColorLike(value)) {
-    return <span>{value}</span>
-  }
+interface ThemeRowProps {
+  item: LibraryItem
+  onToggle: () => void
+  onRemove: () => void
+}
+
+function ThemeRow(props: ThemeRowProps) {
+  const { item, onToggle, onRemove } = props
+  const [expanded, setExpanded] = useState(false)
+  const dragControls = useDragControls()
+
+  const author = item.theme?.author?.trim()
+  const description = item.theme?.description?.trim()
+
+  const stop = (e: { stopPropagation: () => void }) => e.stopPropagation()
+
   return (
-    <span className="inline-flex items-center gap-1">
-      <span
-        className="inline-block w-3 h-3 rounded border"
-        style={{ backgroundColor: value, borderColor: 'rgba(255, 182, 193, 0.3)' }}
-      />
-      <span>{value}</span>
-    </span>
+    <Reorder.Item
+      as="div"
+      value={item.entry.id}
+      dragListener={false}
+      dragControls={dragControls}
+      transition={{ duration: 0 }}
+      className={classNames('theme-item', { 'is-disabled': !item.entry.enabled })}
+      onClick={onToggle}
+    >
+      <div className="theme-item-head">
+        <span
+          className="theme-drag-handle"
+          title="拖动排序"
+          onPointerDown={(e) => dragControls.start(e)}
+          onClick={stop}
+        >
+          ⠿
+        </span>
+        <span className="theme-item-check" onClick={stop}>
+          <Checkbox isSelected={item.entry.enabled} onValueChange={onToggle} />
+        </span>
+        <div className="theme-item-meta">
+          <div className="theme-item-name">
+            <span className="theme-item-title">{themeDisplayName(item)}</span>
+            {author ? <span className="theme-item-author">by {author}</span> : null}
+          </div>
+          {description ? <div className="theme-item-desc">{description}</div> : null}
+        </div>
+        <span onClick={stop}>
+          <Button size="sm" variant="flat" className="theme-loader-button" onPress={onRemove}>
+            删除
+          </Button>
+        </span>
+        <button
+          type="button"
+          className="theme-expand"
+          aria-label={expanded ? '收起详情' : '展开详情'}
+          onClick={(e) => {
+            stop(e)
+            setExpanded((value) => !value)
+          }}
+        >
+          <ChevronIcon open={expanded} />
+        </button>
+      </div>
+
+      {item.parseError ? <div className="theme-item-error">无法解析此主题文件（已忽略，建议删除）。</div> : null}
+
+      {expanded && item.theme ? (
+        <div className="theme-item-detail" onClick={stop}>
+          <div className="theme-item-id">id: {item.entry.id}</div>
+          <ThemePatchView theme={item.theme} />
+        </div>
+      ) : null}
+    </Reorder.Item>
+  )
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {open ? <path d="M18 15l-6-6-6 6" /> : <path d="M6 9l6 6 6-6" />}
+    </svg>
   )
 }

@@ -71,6 +71,29 @@ fn invoke_lark_session(id: String, command: String, args: Vec<String>) -> tauri:
 }
 
 #[tauri::command]
+async fn pick_and_read_theme(app: AppHandle) -> tauri::Result<Option<String>> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let picked = app
+        .dialog()
+        .file()
+        .add_filter("Wal 主题", &["yaml", "yml"])
+        .blocking_pick_file();
+
+    let Some(file_path) = picked else {
+        // 用户取消选择
+        return Ok(None);
+    };
+
+    let path = file_path
+        .into_path()
+        .map_err(|_| tauri::Error::InvokeKey)?;
+    // 直接从磁盘读取，绕开 webview 的文件缓存，保证每次都是最新内容
+    let content = std::fs::read_to_string(&path).map_err(|_| tauri::Error::InvokeKey)?;
+    Ok(Some(content))
+}
+
+#[tauri::command]
 fn open_lark_install_directory() -> tauri::Result<()> {
     let path = get_lark_base_path().map_err(|_| tauri::Error::InvokeKey)?;
     let _ = tokio::process::Command::new("explorer.exe")
@@ -125,6 +148,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(setup)
         .invoke_handler(tauri::generate_handler![
             get_lark_base_path,
@@ -136,6 +160,7 @@ pub fn run() {
             invoke_lark_session,
             close_lark_session,
             open_lark_install_directory,
+            pick_and_read_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

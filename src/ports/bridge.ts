@@ -116,6 +116,12 @@ export class NativeBridge {
     return invoke('open_lark_install_directory')
   }
 
+  // 通过原生侧选择并读取主题文件，绕开 webview 的文件缓存，保证每次读到的都是磁盘上的最新内容。
+  // 返回文件内容；用户取消选择时返回 null。
+  pickAndReadTheme(): Promise<string | null> {
+    return invoke<string | null>('pick_and_read_theme')
+  }
+
   subscribeToLogEvents(callback: (message: string) => void): ReturnType<typeof listen<string>> {
     return listen<string>('log-events', (event) => {
       callback(event.payload)

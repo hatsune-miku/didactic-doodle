@@ -1,4 +1,5 @@
 import { useLogsStore } from '../store/logs'
+import { nativeBridge } from '../ports/bridge'
 import { WalTheme } from './types'
 import yaml from 'js-yaml'
 
@@ -39,23 +40,12 @@ export function parseTheme(raw: string): WalTheme | null {
   }
 }
 
-export function promptAndLoadTheme(): Promise<WalTheme | null> {
-  return new Promise((resolve) => {
-    const file = document.createElement('input')
-    file.type = 'file'
-    file.accept = '.yaml'
-    file.multiple = false
-    file.onchange = (event: Event) => {
-      const file = (event.target as HTMLInputElement).files?.[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (event: ProgressEvent<FileReader>) => {
-          const content = event.target?.result as string
-          resolve(parseTheme(content))
-        }
-        reader.readAsText(file)
-      }
-    }
-    file.click()
-  })
+export async function promptAndLoadTheme(): Promise<WalTheme | null> {
+  // 走原生侧选择并读取文件，避免 webview 的 FileReader 缓存导致重新加载同一文件时读到旧内容。
+  const content = await nativeBridge.pickAndReadTheme()
+  if (content == null) {
+    // 用户取消选择
+    return null
+  }
+  return parseTheme(content)
 }

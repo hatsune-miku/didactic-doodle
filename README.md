@@ -65,7 +65,27 @@ yarn tauri build
 src-tauri/target/release/bundle/
 ```
 
-默认构建不会生成 Tauri updater 签名产物，因此不需要 `TAURI_SIGNING_PRIVATE_KEY` 或其他私钥。只有在重新启用 `src-tauri/tauri.conf.json` 里的 `bundle.createUpdaterArtifacts` 时，才需要配置 updater 签名私钥。
+> 说明：内置的 Tauri 自动更新（updater）已移除，更新交由 KFC 统一管理，构建不再生成签名产物（`.sig` / `latest.json`），也不再需要签名私钥。
+
+## KFC
+
+本工具已接入 KFC（统一工具管理），以 zip-portable 归档形式分发（不再使用 NSIS/MSI 安装器）。
+
+打包为 KFC 产物（会先构建再压缩到 `dist-kfc/`）：
+
+```
+npm run kfc:pack -- -Version <版本号>
+```
+
+发布到 KFC Hub：
+
+```
+npm run kfc:publish -- --version <版本号>
+```
+
+（产物从 manifest 自动推导，无需 `--artifact`。）
+
+一步完成构建 + 发布：`npm run kfc:release -- -Version <版本号>`。
 
 ## 单独运行主题编辑器
 
@@ -86,3 +106,10 @@ yarn build
 ## 发布流程
 
 `.github/workflows/main.yml` 会在推送到 `release` 分支时触发 Windows 构建，并创建草稿 Release。
+
+该 workflow 通过 `tauri-apps/tauri-action` 构建，并把签名安装包与 updater 清单 `latest.json` 一并附到草稿 Release。它需要以下 Secret（配置在 `Release` 环境或仓库级 Secrets 中）：
+
+- `TAURI_SIGNING_PRIVATE_KEY`：与 `tauri.conf.json` 中 `pubkey` 配对的签名私钥。
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`：生成私钥时设置的密码（未设置则留空）。
+
+注意：草稿 Release 的资产是非公开的，`latest.json` 中的下载地址需要在 Release 正式发布后（或由具备访问权限的服务转发）才能被 updater 拉取。

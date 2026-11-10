@@ -32,6 +32,3 @@ tauri-plugin-dialog = "2"
 windows-registry = "0.6"
 windows-result = "0.4"
 windows-sys = { version = "0.61.2", features = ["Win32_System_Diagnostics_ToolHelp", "Win32_System_Threading"] }
-
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-updater = "2"

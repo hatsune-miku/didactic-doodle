@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { makeStylesScript } from '../../helper/style-scripts'
 import { LarkSession, nativeBridge } from '../../ports/bridge'
@@ -15,18 +15,7 @@ export function useThemeLoaderViewModel() {
 
   const windowTitle = useWindowTitle()
 
-  const sessionRef = useRef<LarkSession | null>(null)
-
   const enabledCount = library.items.filter((item) => item.entry.enabled).length
-
-  async function ensureSession(): Promise<LarkSession> {
-    if (sessionRef.current) {
-      return sessionRef.current
-    }
-    const session = await nativeBridge.createLarkSession()
-    sessionRef.current = session
-    return session
-  }
 
   async function handleApply() {
     if (await nativeBridge.isLarkRunning()) {
@@ -41,11 +30,13 @@ export function useThemeLoaderViewModel() {
     const entries = Object.entries(merged.asarPatches).filter(([, patches]) => patches && patches.length > 0)
 
     themeEngineStore.setWorkingState('working')
-    try {
-      themeEngineStore.setCurrentProgress(0)
-      themeEngineStore.setMaxProgress(entries.length + 1)
+    themeEngineStore.setCurrentProgress(0)
+    themeEngineStore.setMaxProgress(entries.length + 1)
 
-      const session = await ensureSession()
+    // 每次应用都用全新的 session：补丁状态绝不跨次累积，避免旧补丁残留导致应用到旧内容。
+    let session: LarkSession | null = null
+    try {
+      session = await nativeBridge.createLarkSession()
       logsStore.add('正在还原到官方原版...')
       try {
         await session.restoreAllBackups()
@@ -83,6 +74,8 @@ export function useThemeLoaderViewModel() {
       themeEngineStore.setCurrentProgress(0)
       themeEngineStore.setWorkingState('error')
       logsStore.add(`应用补丁失败: ${String(error)}`)
+    } finally {
+      await session?.close().catch(() => {})
     }
 
     logsStore.add('=== 任务结束 ===')
@@ -93,12 +86,15 @@ export function useThemeLoaderViewModel() {
       logsStore.add('飞书正在运行，请先关闭')
       return
     }
+    let session: LarkSession | null = null
     try {
-      const session = await ensureSession()
+      session = await nativeBridge.createLarkSession()
       await session.restoreAllBackups()
       logsStore.add('所有备份已恢复')
     } catch (error) {
       logsStore.add(`恢复备份失败: ${String(error)}`)
+    } finally {
+      await session?.close().catch(() => {})
     }
   }
 

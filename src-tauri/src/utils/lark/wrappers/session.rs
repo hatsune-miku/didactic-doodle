@@ -154,7 +154,9 @@ impl LarkSession {
             let patch = file.patch_script(&inner_path, script)?;
 
             if self.patch_map.contains_key(&file) {
-                self.patch_map.get_mut(&file).unwrap().insert(patch);
+                // 用 replace 而非 insert：HashSet::insert 不会覆盖已存在的相等元素，
+                // 会导致同一文件被重复提交时保留旧补丁内容。
+                self.patch_map.get_mut(&file).unwrap().replace(patch);
             } else {
                 let mut set = HashSet::new();
                 set.insert(patch);

@@ -1,0 +1,18 @@
+id: wal-macos-test
+name: macOS 验证标记
+description: 在消息页右下角显示 WAL macOS 标记
+asarPatches:
+  webcontent/messenger.asar:
+    - kind: main-script
+      subject: messenger
+      styleOverridesBySelector: {}
+      colorOverrides: {}
+      enableDevTools: false
+      customScript: |
+        const previous = document.getElementById('wal-macos-test')
+        if (previous) previous.remove()
+        const badge = document.createElement('div')
+        badge.id = 'wal-macos-test'
+        badge.textContent = 'WAL macOS'
+        badge.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;padding:8px 12px;border-radius:8px;background:#186b4f;color:white;font:13px -apple-system,sans-serif;pointer-events:none'
+        document.body.appendChild(badge)

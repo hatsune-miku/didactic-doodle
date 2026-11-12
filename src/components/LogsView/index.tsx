@@ -1,56 +1,43 @@
-import { Tooltip } from '@heroui/react'
+import { Button, LogView } from '@a1knla/cakeui'
+
 import { useLogsStore } from '../../store/logs'
-import { DateTime } from 'luxon'
-import { useEffect, useMemo, useRef } from 'react'
-import classNames from 'classnames'
+
 import './index.scss'
 
+const timeFormat = new Intl.DateTimeFormat('zh-CN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
 export default function LogsView() {
-  const { logs } = useLogsStore()
-
-  const logsContainerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (logsContainerRef.current) {
-      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight
-    }
-  }, [logs.length])
-
-  const components = useMemo(() => {
-    const ret = []
-    for (let index = 0; index < logs.length; index++) {
-      const log = logs[index]
-      const timeDelta = index === 0 ? 0 : log.timestamp - logs[index - 1].timestamp
-      const shouldOmitDisplayDatetime = index !== 0 && timeDelta < 3000
-
-      const displayDatetime = shouldOmitDisplayDatetime ? '' : DateTime.fromMillis(log.timestamp).toFormat('HH:mm:ss')
-      const item = (
-        <Tooltip
-          content={DateTime.fromMillis(log.timestamp).toFormat('yyyy/MM/dd HH:mm:ss')}
-          closeDelay={0}
-          style={{
-            pointerEvents: 'none',
-          }}
-        >
-          <div
-            key={index}
-            className={classNames('logs-item', {
-              'no-margin': index === 0 || shouldOmitDisplayDatetime,
-            })}
-          >
-            <div className="logs-time">{displayDatetime}</div>
-            <div className="logs-text">{log.text}</div>
-          </div>
-        </Tooltip>
-      )
-      ret.push(item)
-    }
-    return ret
-  }, [logs])
-
+  const { logs, clear } = useLogsStore()
   return (
-    <div ref={logsContainerRef} className="logs-view">
-      {components}
-    </div>
+    <section className="logs-view" aria-label="运行记录">
+      <LogView className="logs-view-content" aria-label="运行记录">
+        {logs.length === 0 ? (
+          <p className="logs-view-empty">暂无运行记录</p>
+        ) : (
+          logs.map((log, index) => (
+            <div className="logs-entry" key={`${log.timestamp}-${index}`}>
+              <time
+                className="logs-entry-time"
+                dateTime={new Date(log.timestamp).toISOString()}
+                title={new Date(log.timestamp).toLocaleString()}
+              >
+                {timeFormat.format(log.timestamp)}
+              </time>
+              <span className="logs-entry-text">{log.text}</span>
+            </div>
+          ))
+        )}
+      </LogView>
+      <div className="logs-view-actions">
+        <Button variant="ghost" size="small" disabled={logs.length === 0} onClick={clear}>
+          清空记录
+        </Button>
+      </div>
+    </section>
   )
 }

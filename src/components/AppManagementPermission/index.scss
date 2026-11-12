@@ -1,0 +1,23 @@
+.app-management-permission {
+  width: min(460px, calc(100vw - 32px));
+
+  .app-management-help {
+    margin-top: 12px;
+    color: var(--cake-muted);
+    font-size: 13px;
+  }
+
+  .app-management-help-title {
+    cursor: pointer;
+  }
+
+  .app-management-help-text {
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  .app-management-error {
+    margin-top: 12px;
+    overflow-wrap: anywhere;
+  }
+}

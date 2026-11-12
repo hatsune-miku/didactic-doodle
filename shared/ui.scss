@@ -1,0 +1,52 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  font-synthesis: none;
+  font-variant-ligatures: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+  font-size: inherit;
+}
+
+.wal-app {
+  --cake-font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans CJK SC', 'Segoe UI', sans-serif;
+  --cake-shadow: var(--cake-edge);
+  --cake-shadow-strong: var(--cake-edge);
+  --cake-radius-dialog: 24px;
+  min-height: 100dvh;
+  font-variant-ligatures: none;
+}
+
+.wal-copyable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

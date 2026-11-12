@@ -1,165 +1,102 @@
-import { useEffect } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { makeStylesScript } from '../../helper/style-scripts'
-import { LarkSession, nativeBridge } from '../../ports/bridge'
+import { useEffect, useRef, useState } from 'react'
+
+import { openUrl } from '@tauri-apps/plugin-opener'
+
+import { nativeBridge } from '../../ports/bridge'
 import { useLogsStore } from '../../store/logs'
-import { useWindowTitle } from '../../utils/use-title'
 import { useThemeEngineStore } from '../../store/theme-engine'
 import { useThemeLibraryStore } from '../../store/theme-library'
-import { mergeThemes } from '../../theme/merge'
+import { applyEnabledThemes, restoreOfficialTheme } from '../../theme/operations'
+import { useWindowTitle } from '../../utils/use-title'
 
 export function useThemeLoaderViewModel() {
-  const logsStore = useLogsStore()
-  const themeEngineStore = useThemeEngineStore()
+  const engine = useThemeEngineStore()
   const library = useThemeLibraryStore()
+  const [libraryBusy, setLibraryBusy] = useState(false)
+  const [libraryError, setLibraryError] = useState<string | null>(null)
+  const busyRef = useRef(false)
+  const retryRef = useRef<(() => Promise<void>) | null>(null)
+  useWindowTitle()
 
-  const windowTitle = useWindowTitle()
-
-  const enabledCount = library.items.filter((item) => item.entry.enabled).length
-
-  async function handleApply() {
-    if (await nativeBridge.isLarkRunning()) {
-      logsStore.add('飞书正在运行，请先关闭')
-      return
-    }
-
-    // 对账式应用：先把所有备份还原回官方原版，再把当前勾选的合并应用上去。
-    // 因此「不勾选任何主题 + 应用」= 纯还原 = 官方原版。
-    const themes = await library.collectEnabledThemes()
-    const merged = mergeThemes(themes)
-    const entries = Object.entries(merged.asarPatches).filter(([, patches]) => patches && patches.length > 0)
-
-    themeEngineStore.setWorkingState('working')
-    themeEngineStore.setCurrentProgress(0)
-    themeEngineStore.setMaxProgress(entries.length + 1)
-
-    // 每次应用都用全新的 session：补丁状态绝不跨次累积，避免旧补丁残留导致应用到旧内容。
-    let session: LarkSession | null = null
+  async function runLibraryAction(action: () => Promise<void>) {
+    if (busyRef.current || useThemeEngineStore.getState().workingState === 'working') return
+    busyRef.current = true
+    setLibraryBusy(true)
+    setLibraryError(null)
+    retryRef.current = action
     try {
-      session = await nativeBridge.createLarkSession()
-      logsStore.add('正在还原到官方原版...')
-      try {
-        await session.restoreAllBackups()
-      } catch (error) {
-        logsStore.add(`还原失败: ${String(error)}`)
-      }
-      themeEngineStore.incrementCurrentProgress()
-
-      for (const [asarFile, patches] of entries) {
-        logsStore.add(`正在修改 asar 文件: ${asarFile}`)
-
-        for (let index = 0; index < patches.length; index++) {
-          logsStore.add(`补丁 #${index + 1} 开始应用...`)
-          const patch = patches[index]
-          const script = makeStylesScript(patch)
-
-          if (patch.kind === 'main-script') {
-            await session.submitMainScriptPatch({ asarPath: asarFile, subject: patch.subject, script })
-          } else {
-            await session.submitPatch({ asarPath: asarFile, innerPath: patch.path, script })
-          }
-        }
-
-        logsStore.add('正在写入文件...')
-        try {
-          await session.applyPatches()
-        } catch (error) {
-          logsStore.add(`写入文件失败: ${String(error)}`)
-        }
-        themeEngineStore.incrementCurrentProgress()
-      }
-      themeEngineStore.setCurrentProgress(themeEngineStore.maxProgress)
-      themeEngineStore.setWorkingState('done')
+      await action()
+      retryRef.current = null
     } catch (error) {
-      themeEngineStore.setCurrentProgress(0)
-      themeEngineStore.setWorkingState('error')
-      logsStore.add(`应用补丁失败: ${String(error)}`)
+      setLibraryError(String(error))
+      useLogsStore.getState().add(String(error))
     } finally {
-      await session?.close().catch(() => {})
-    }
-
-    logsStore.add('=== 任务结束 ===')
-  }
-
-  async function handleRestoreAllBackups() {
-    if (await nativeBridge.isLarkRunning()) {
-      logsStore.add('飞书正在运行，请先关闭')
-      return
-    }
-    let session: LarkSession | null = null
-    try {
-      session = await nativeBridge.createLarkSession()
-      await session.restoreAllBackups()
-      logsStore.add('所有备份已恢复')
-    } catch (error) {
-      logsStore.add(`恢复备份失败: ${String(error)}`)
-    } finally {
-      await session?.close().catch(() => {})
+      busyRef.current = false
+      setLibraryBusy(false)
     }
   }
 
   function handleImport() {
-    return library.importTheme()
+    return runLibraryAction(library.importTheme)
   }
-
   function handleRemove(id: string) {
-    return library.removeTheme(id)
+    return runLibraryAction(() => library.removeTheme(id))
   }
-
   function handleToggle(id: string) {
-    return library.toggleEnabled(id)
+    return runLibraryAction(() => library.toggleEnabled(id))
   }
-
-  function handleReorder(orderedIds: string[]) {
-    return library.reorder(orderedIds)
+  function handleReorder(ids: string[]) {
+    return runLibraryAction(() => library.reorder(ids))
   }
-
-  function handleFinishAndLaunchLark() {
-    nativeBridge.launchLark()
-    themeEngineStore.setWorkingState('idle')
+  function handleRetryLibrary() {
+    if (retryRef.current) return runLibraryAction(retryRef.current)
   }
-
-  function handleFinishAndRestoreBackups() {
-    handleRestoreAllBackups()
-    themeEngineStore.setWorkingState('idle')
+  function handleOpenEditor() {
+    return runLibraryAction(() => openUrl('https://wal-theme.vanillacake.cn/'))
   }
-
-  function handleFinish() {
-    themeEngineStore.setWorkingState('idle')
+  function handleRetryOperation() {
+    return engine.lastOperation === 'restore' ? restoreOfficialTheme() : applyEnabledThemes()
+  }
+  function handleDismissStatus() {
+    engine.setLastError(null)
+    engine.setCompletionMessage(null)
+    engine.setWorkingState('idle')
+  }
+  function handleLaunch() {
+    return runLibraryAction(() => nativeBridge.launchLark())
   }
 
   useEffect(() => {
-    getCurrentWindow()?.setTitle(windowTitle || '')
-  }, [windowTitle])
-
-  useEffect(() => {
-    library.load()
-    nativeBridge.getLarkBasePath().then((path) => {
-      logsStore.add(`找到飞书路径: ${path}`)
-    })
-    const unsubscribe = nativeBridge.subscribeToLogEvents((message) => {
-      logsStore.add(message)
-    })
+    runLibraryAction(library.load)
+    nativeBridge
+      .getLarkBasePath()
+      .then((path) => useLogsStore.getState().add(`找到飞书: ${path}`))
+      .catch((error) => useLogsStore.getState().add(`定位飞书失败: ${String(error)}`))
+    const subscription = nativeBridge.subscribeToLogEvents((message) => useLogsStore.getState().add(message))
+    subscription.catch((error) => useLogsStore.getState().add(`订阅运行记录失败: ${String(error)}`))
     return () => {
-      unsubscribe.then((unsubscribe) => unsubscribe())
+      subscription.then((unsubscribe) => unsubscribe()).catch(() => {})
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {
-    workingState: themeEngineStore.workingState,
-    currentProgress: themeEngineStore.currentProgress,
-    maxProgress: themeEngineStore.maxProgress,
+    ...engine,
     items: library.items,
-    enabledCount,
+    loaded: library.loaded,
+    enabledCount: library.items.filter((item) => item.entry.enabled).length,
+    disabled: libraryBusy || engine.workingState === 'working',
+    libraryBusy,
+    libraryError,
     handleImport,
-    handleApply,
     handleRemove,
     handleToggle,
     handleReorder,
-    handleRestoreAllBackups,
-    handleFinishAndLaunchLark,
-    handleFinishAndRestoreBackups,
-    handleFinish,
+    handleOpenEditor,
+    handleRetryLibrary,
+    handleRetryOperation,
+    handleDismissStatus,
+    handleLaunch,
+    handleApply: applyEnabledThemes,
+    handleRestore: restoreOfficialTheme,
   }
 }

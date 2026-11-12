@@ -1,0 +1,61 @@
+.editor-app {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1440px;
+  min-height: 100dvh;
+  margin: 0 auto;
+
+  .editor-toolbar,
+  .editor-toolbar-group,
+  .editor-add-patch {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .editor-toolbar {
+    justify-content: space-between;
+  }
+  .editor-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+    gap: 32px;
+  }
+  .editor-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+  .editor-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+  .editor-archive {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .editor-archive-path {
+    padding: 12px 0;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .editor-empty {
+    padding: 20px 0;
+    color: var(--cake-muted);
+  }
+  @media (max-width: 900px) {
+    .editor-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 520px) {
+    padding: 16px;
+  }
+}

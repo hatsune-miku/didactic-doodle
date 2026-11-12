@@ -1,40 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+
 import { nativeBridge } from '../ports/bridge'
 
 export function useLarkRunning() {
-  const [larkRunning, setLarkRunning] = useState<boolean>(false)
-  const checkRunningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
+  const [running, setRunning] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    nativeBridge.isLarkRunning().then(setLarkRunning)
-
-    const checkProc = () => {
-      nativeBridge.isLarkRunning().then((running) => {
-        if (!running) {
-          checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          return
+    let disposed = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    async function checkRunning() {
+      try {
+        const next = await nativeBridge.isLarkRunning()
+        if (!disposed) {
+          setRunning(next)
+          setError(null)
         }
-        setLarkRunning(true)
-        nativeBridge
-          .waitUntilLarkEnded()
-          .then(() => {
-            setLarkRunning(false)
-            checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          })
-          .catch(() => {
-            setLarkRunning(false)
-            checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          })
-      })
-    }
-    checkProc()
-    return () => {
-      if (checkRunningTimerRef.current) {
-        clearTimeout(checkRunningTimerRef.current)
-        checkRunningTimerRef.current = null
+      } catch (error) {
+        if (!disposed) {
+          setRunning(null)
+          setError(String(error))
+        }
+      } finally {
+        if (!disposed) timer = setTimeout(checkRunning, 2000)
       }
     }
+    checkRunning()
+    return () => {
+      disposed = true
+      if (timer) clearTimeout(timer)
+    }
   }, [])
-
-  return larkRunning
+  return { running, error }
 }

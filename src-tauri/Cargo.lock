@@ -4725,13 +4725,16 @@ name = "wal-assistant-lark"
 version = "0.1.0"
 dependencies = [
  "asar",
+ "plist",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "tauri-plugin-process",
+ "tempfile",
  "tokio",
  "uuid",
  "windows-registry",

@@ -1,11 +1,9 @@
 import ReactDOM from 'react-dom/client'
+
+import '@a1knla/cakeui/style.css'
+
 import App from './App'
-import { HeroUIProvider } from '@heroui/react'
 
-import './main.css'
+import '../shared/ui.scss'
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <HeroUIProvider>
-    <App />
-  </HeroUIProvider>
-)
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<App />)

@@ -1,8 +1,8 @@
 # Wal Assistant Lark
 
-Wal Assistant Lark 是一个基于 Tauri 2、React 和 Vite 的桌面工具，用于给飞书客户端应用主题补丁，并提供恢复官方原版、结束/启动飞书、打开飞书安装目录等辅助功能。
+Wal Assistant Lark 是一个基于 Tauri 2、React 和 Vite 的桌面工具，用于给飞书客户端应用主题补丁，支持主题导入、组合、排序、应用和恢复原版。主界面保留必要的飞书进程操作。
 
-> 当前原生侧主要面向 Windows：项目会读取 Windows 注册表来定位飞书安装目录。
+支持 Windows 与 macOS。Windows 通过注册表定位飞书；macOS 识别「应用程序」目录中的飞书应用包。
 
 ## 目录说明
 
@@ -10,15 +10,22 @@ Wal Assistant Lark 是一个基于 Tauri 2、React 和 Vite 的桌面工具，�
 - `src-tauri/`：Tauri/Rust 原生端源码与桌面应用配置。
 - `src-editor/`：独立的主题编辑器前端，和主桌面应用分开安装依赖、分开构建。
 
+## 前端约束
+
+桌面端和独立编辑器统一使用 React 19、CakeUI 与 SCSS，遵循 [项目约束](AGENTS.md) 和 [界面规范](docs/UI.md)。不再使用 HeroUI 或 Tailwind；主界面不再提供飞书小工具和设置页签。
+
+验证命令：`yarn test`、`yarn test:editor`、`yarn format:check`、`yarn build`。独立编辑器在 `src-editor/` 执行 `yarn build`。
+
 ## 环境要求
 
-1. Windows 10/11。
+1. Windows 10/11，或 macOS 13.3 及以上。
 2. Node.js LTS。
 3. Yarn 1.x 或 pnpm。项目 CI 和 Tauri 配置默认使用 `yarn`。
 4. Rust stable。
 5. Tauri 在 Windows 上需要的系统依赖：
    - Microsoft Edge WebView2 Runtime
    - Microsoft C++ Build Tools，包含 MSVC 和 Windows SDK
+6. macOS 需要 Xcode Command Line Tools，可通过 `xcode-select --install` 安装。
 
 Tauri 官方环境准备文档：<https://v2.tauri.app/start/prerequisites/>
 
@@ -65,11 +72,11 @@ yarn tauri build
 src-tauri/target/release/bundle/
 ```
 
-> 说明：内置的 Tauri 自动更新（updater）已移除，更新交由 KFC 统一管理，构建不再生成签名产物（`.sig` / `latest.json`），也不再需要签名私钥。
+内置的 Tauri 自动更新（updater）已移除，更新交由 KFC 统一管理。当前配置不生成 updater 签名产物 `.sig`，也不需要 `TAURI_SIGNING_PRIVATE_KEY` 或 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
 
 ## KFC
 
-本工具已接入 KFC（统一工具管理），以 zip-portable 归档形式分发（不再使用 NSIS/MSI 安装器）。
+本工具已接入 KFC（统一工具管理），通过 KFC 分发 zip-portable 归档。Tauri 构建仍会生成常规安装包，KFC 打包脚本提取可执行文件及配套资源制作 ZIP。
 
 打包为 KFC 产物（会先构建再压缩到 `dist-kfc/`）：
 
@@ -86,6 +93,16 @@ npm run kfc:publish -- --version <版本号>
 （产物从 manifest 自动推导，无需 `--artifact`。）
 
 一步完成构建 + 发布：`npm run kfc:release -- -Version <版本号>`。
+
+macOS 使用：
+
+```sh
+yarn kfc:pack:macos --version 0.1.7
+# 可选：--target aarch64-apple-darwin 或 --target x86_64-apple-darwin
+yarn kfc:publish --version 0.1.7
+```
+
+Mac ZIP 包包含完整 `.app` 和 `launch.command`。启动脚本会恢复 KFC 解压时丢失的执行权限，并透传启动参数。版本号必须与 `src-tauri/tauri.conf.json` 一致。仅打包不发布时只执行第一条命令。
 
 ## 单独运行主题编辑器
 
@@ -105,11 +122,25 @@ yarn build
 
 ## 发布流程
 
-`.github/workflows/main.yml` 会在推送到 `release` 分支时触发 Windows 构建，并创建草稿 Release。
+`.github/workflows/main.yml` 会在推送到 `release` 分支时运行测试，构建 Windows x64、macOS Apple Silicon 和 Intel 版本，并创建 GitHub 草稿 Release。该流程通过 `tauri-apps/tauri-action` 上传常规构建产物；macOS KFC ZIP 另存为 workflow artifact。不生成 updater 清单 `latest.json`，也不需要 updater 签名 Secret。
 
-该 workflow 通过 `tauri-apps/tauri-action` 构建，并把签名安装包与 updater 清单 `latest.json` 一并附到草稿 Release。它需要以下 Secret（配置在 `Release` 环境或仓库级 Secrets 中）：
+GitHub Release 和 KFC Hub 是两个发布入口；该 workflow 不会自动发布到 KFC。发布到 KFC 时使用上面的 `kfc:release`，通过 `KFC_HUB` 指定 Hub 地址，通过 `KFC_TOKEN` 提供认证凭据。
 
-- `TAURI_SIGNING_PRIVATE_KEY`：与 `tauri.conf.json` 中 `pubkey` 配对的签名私钥。
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`：生成私钥时设置的密码（未设置则留空）。
+## 测试
 
-注意：草稿 Release 的资产是非公开的，`latest.json` 中的下载地址需要在 Release 正式发布后（或由具备访问权限的服务转发）才能被 updater 拉取。
+前端逻辑测试和类型检查：
+
+```powershell
+yarn test
+yarn build
+```
+
+原生回归测试在 Windows 和 macOS 上运行，使用临时 ASAR 文件和应用目录，不修改已安装的飞书：
+
+```powershell
+cargo test --locked --manifest-path src-tauri/Cargo.toml
+```
+
+## macOS
+
+运行、备份机制、打包和验证步骤见 [macOS 适配说明](docs/MACOS.md)。前期的独立验证脚本保留在 [macOS 验证指南](scripts/MACOS_PROBE.md)，它的整包备份与桌面应用现在使用的 ASAR 备份相互独立。

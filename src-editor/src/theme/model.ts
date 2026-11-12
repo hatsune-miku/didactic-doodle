@@ -3,12 +3,12 @@ import yaml from 'js-yaml'
 import { WalAsarPatch, WalTheme } from './types'
 
 export function createTheme(): WalTheme {
-  return { id: '', name: '', author: '', description: '', asarPatches: {} }
+  return { asarPatches: {} }
 }
 
 export function createPatch(kind: WalAsarPatch['kind']): WalAsarPatch {
   const base = { styleOverridesBySelector: {}, colorOverrides: {}, enableDevTools: false }
-  return kind === 'main-script' ? { ...base, kind, subject: '' } : { ...base, kind, path: '' }
+  return kind === 'main-script' ? { kind, subject: '', ...base } : { kind, path: '', ...base }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,8 +48,29 @@ export function readTheme(content: string): WalTheme {
   return data as unknown as WalTheme
 }
 
+const META_FIELDS = ['id', 'name', 'author', 'description'] as const
+
+function orderPatch(patch: WalAsarPatch) {
+  return {
+    kind: patch.kind,
+    ...(patch.kind === 'main-script' ? { subject: patch.subject } : { path: patch.path }),
+    ...(patch.description ? { description: patch.description } : {}),
+    styleOverridesBySelector: patch.styleOverridesBySelector,
+    colorOverrides: patch.colorOverrides,
+    enableDevTools: patch.enableDevTools,
+    ...(patch.customScript ? { customScript: patch.customScript } : {}),
+  }
+}
+
+/** 按固定顺序输出字段，省略空的可选文本；读取方把缺省与空文本同等对待。 */
 export function writeTheme(theme: WalTheme): string {
-  return yaml.dump(theme, { noRefs: true, lineWidth: 120 })
+  const output = {
+    ...Object.fromEntries(META_FIELDS.filter((field) => theme[field]).map((field) => [field, theme[field]])),
+    asarPatches: Object.fromEntries(
+      Object.entries(theme.asarPatches).map(([path, patches]) => [path, patches.map(orderPatch)])
+    ),
+  }
+  return yaml.dump(output, { noRefs: true, lineWidth: 120 })
 }
 
 export function updatePatch(
@@ -59,14 +80,21 @@ export function updatePatch(
   update: (patch: WalAsarPatch) => WalAsarPatch
 ): WalTheme {
   const patches = theme.asarPatches[path]
-  if (!patches?.[index]) return theme
+  const current = patches?.[index]
+  if (!current) return theme
+  const next = update(current)
+  if (next === current) return theme
   return {
     ...theme,
     asarPatches: {
       ...theme.asarPatches,
-      [path]: patches.map((patch, position) => (position === index ? update(patch) : patch)),
+      [path]: patches.map((patch, position) => (position === index ? next : patch)),
     },
   }
+}
+
+export function addPatch(theme: WalTheme, path: string, patch: WalAsarPatch): WalTheme {
+  return { ...theme, asarPatches: { ...theme.asarPatches, [path]: [...(theme.asarPatches[path] ?? []), patch] } }
 }
 
 export function removePatch(theme: WalTheme, path: string, index: number): WalTheme {
@@ -78,16 +106,33 @@ export function removePatch(theme: WalTheme, path: string, index: number): WalTh
   return { ...theme, asarPatches }
 }
 
+/** 把补丁移到另一个 ASAR 包的末尾；原包没有补丁后一并删除。 */
+export function movePatch(theme: WalTheme, path: string, index: number, toPath: string): WalTheme {
+  const patch = theme.asarPatches[path]?.[index]
+  if (!patch || path === toPath) return theme
+  return addPatch(removePatch(theme, path, index), toPath, patch)
+}
+
+/** 重命名键并保持原有顺序；目标键已存在时由调用方先行拒绝。 */
+export function renameKey<T>(record: Record<string, T>, from: string, to: string): Record<string, T> {
+  if (from === to || !Object.hasOwn(record, from)) return record
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [key === from ? to : key, value]))
+}
+
 export interface ThemeHistory {
   past: WalTheme[]
   present: WalTheme
   future: WalTheme[]
+  /** 连续输入同一字段时合并为一步撤销。 */
+  mergeKey?: string
 }
-export type ThemeHistoryAction = { type: 'update'; update: (theme: WalTheme) => WalTheme } | { type: 'undo' | 'redo' }
-export function createHistory(): ThemeHistory {
-  return { past: [], present: createTheme(), future: [] }
+export type ThemeHistoryAction =
+  { type: 'update'; update: (theme: WalTheme) => WalTheme; merge?: string } | { type: 'undo' | 'redo' | 'checkpoint' }
+export function createHistory(present: WalTheme = createTheme()): ThemeHistory {
+  return { past: [], present, future: [] }
 }
 export function historyReducer(state: ThemeHistory, action: ThemeHistoryAction): ThemeHistory {
+  if (action.type === 'checkpoint') return state.mergeKey ? { ...state, mergeKey: undefined } : state
   if (action.type === 'undo') {
     if (!state.past.length) return state
     return {
@@ -102,5 +147,7 @@ export function historyReducer(state: ThemeHistory, action: ThemeHistoryAction):
   }
   if (action.type !== 'update') return state
   const next = action.update(state.present)
-  return next === state.present ? state : { past: [...state.past.slice(-99), state.present], present: next, future: [] }
+  if (next === state.present) return state
+  if (action.merge && action.merge === state.mergeKey) return { ...state, present: next }
+  return { past: [...state.past.slice(-99), state.present], present: next, future: [], mergeKey: action.merge }
 }

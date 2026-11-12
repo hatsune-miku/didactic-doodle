@@ -1,183 +1,157 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { Alert, Button, CakeProvider } from '@a1knla/cakeui'
+import { Alert, Button, CakeProvider, Toast } from '@a1knla/cakeui'
 
-import EntryDialog from './components/EntryDialog'
-import MetadataFields from './components/MetadataFields'
 import PatchEditor from './components/PatchEditor'
+import ThemeInfo from './components/ThemeInfo'
+import ThemeOutline from './components/ThemeOutline'
+import Toolbar from './components/Toolbar'
 import YamlPreview from './components/YamlPreview'
-import { EntryRequest } from './types'
-
-import {
-  createHistory,
-  createPatch,
-  createTheme,
-  historyReducer,
-  readTheme,
-  removePatch,
-  updatePatch,
-  writeTheme,
-} from '../theme/model'
-import { WalAsarPatch, WalTheme } from '../theme/types'
+import { DEFAULT_ARCHIVE, useEditor } from './vm'
 
 import './index.scss'
 
-export default function App() {
-  const [history, dispatch] = useReducer(historyReducer, undefined, createHistory)
-  const [error, setError] = useState<string | null>(null)
-  const [entry, setEntry] = useState<EntryRequest | null>(null)
-  const [importing, setImporting] = useState(false)
-  const fileInput = useRef<HTMLInputElement>(null)
-  const theme = history.present
-  const yaml = useMemo(() => writeTheme(theme), [theme])
+const PANE_ID = 'editor-pane'
+const TARGET_ID = 'editor-patch-target'
+/** 提示里带撤销按钮，比默认时长多留些时间去点。 */
+const REMOVAL_TOAST_DURATION = 8000
 
-  function changeTheme(update: (theme: WalTheme) => WalTheme) {
-    dispatch({ type: 'update', update })
-  }
-  function changeMeta(field: 'id' | 'name' | 'author' | 'description', value: string) {
-    changeTheme((current) => ({ ...current, [field]: value }))
-  }
-  function handleNew() {
-    changeTheme(createTheme)
-    setError(null)
-  }
-  async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0]
-    event.currentTarget.value = ''
-    if (!file) return
-    setImporting(true)
-    setError(null)
-    try {
-      const next = readTheme(await file.text())
-      changeTheme(() => next)
-    } catch (error) {
-      setError(`导入 ${file.name} 失败: ${String(error)}`)
-    } finally {
-      setImporting(false)
-    }
-  }
-  function handleExport() {
-    const url = URL.createObjectURL(new Blob([yaml], { type: 'application/yaml;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${(theme.id || 'wal-theme').replace(/[^\p{L}\p{N}._-]/gu, '-')}.yaml`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
-  function handleAddPatch(kind: WalAsarPatch['kind']) {
-    setEntry({
-      title: kind === 'main-script' ? '添加主脚本补丁' : '添加文件补丁',
-      label: 'ASAR 路径',
-      placeholder: 'webcontent/messenger.asar',
-      onSubmit: (path) => {
-        if (!path.toLowerCase().endsWith('.asar')) throw new Error('ASAR 路径应以 .asar 结尾。')
-        changeTheme((current) => ({
-          ...current,
-          asarPatches: { ...current.asarPatches, [path]: [...(current.asarPatches[path] || []), createPatch(kind)] },
-        }))
-      },
-    })
-  }
+function hasFiles(event: React.DragEvent) {
+  return Array.from(event.dataTransfer.types).includes('Files')
+}
+
+export default function App() {
+  const editor = useEditor()
+  const { theme, selection, selectedPatch, focusRequest, handleFocusHandled } = editor
+  const [dropping, setDropping] = useState(false)
+  const archives = Array.from(new Set([...Object.keys(theme.asarPatches), DEFAULT_ARCHIVE]))
 
   useEffect(() => {
-    function handleKey(event: KeyboardEvent) {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey) return
-      const target = event.target
-      if (
-        target instanceof HTMLElement &&
-        (target.closest('input, textarea, select, dialog') || target.isContentEditable)
-      )
-        return
-      const key = event.key.toLowerCase()
-      if (key === 'z' || key === 'y') {
-        event.preventDefault()
-        dispatch({ type: key === 'y' || event.shiftKey ? 'redo' : 'undo' })
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [])
+    if (!focusRequest) return
+    const target =
+      focusRequest === 'target'
+        ? document.getElementById(TARGET_ID)
+        : document.querySelector<HTMLElement>('.editor-outline [aria-current="true"]')
+    target?.focus()
+    handleFocusHandled()
+  }, [focusRequest, handleFocusHandled])
+
+  function handleDragOver(event: React.DragEvent) {
+    if (!hasFiles(event)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setDropping(true)
+  }
+
+  function handleDragLeave(event: React.DragEvent) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false)
+  }
+
+  function handleDrop(event: React.DragEvent) {
+    if (!hasFiles(event)) return
+    event.preventDefault()
+    setDropping(false)
+    const file = event.dataTransfer.files[0]
+    if (file) editor.handleImport(file)
+  }
 
   return (
     <CakeProvider accentColor="#e8788a" foreground="light" mode="system" density="compact" className="wal-app">
-      <main className="editor-app">
-        <header className="editor-toolbar">
-          <div className="editor-toolbar-group">
-            <Button onClick={handleNew} disabled={importing}>
-              新建主题
-            </Button>
-            <Button onClick={() => fileInput.current?.click()} loading={importing}>
-              导入 YAML
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={!history.past.length || importing}
-              onClick={() => dispatch({ type: 'undo' })}
-            >
-              撤销
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={!history.future.length || importing}
-              onClick={() => dispatch({ type: 'redo' })}
-            >
-              重做
-            </Button>
-          </div>
-          <Button variant="primary" onClick={handleExport}>
-            导出 YAML
-          </Button>
-          <input
-            className="editor-file-input"
-            ref={fileInput}
-            type="file"
-            accept=".yaml,.yml,application/yaml,text/yaml"
-            onChange={handleImport}
-            aria-label="导入主题文件"
-            hidden
+      <main
+        className="editor"
+        data-dropping={dropping}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <header className="editor-header">
+          <Toolbar
+            canUndo={editor.canUndo}
+            canRedo={editor.canRedo}
+            importing={editor.importing}
+            draft={editor.draft}
+            onNew={editor.handleNew}
+            onImport={editor.handleImport}
+            onUndo={editor.handleUndo}
+            onRedo={editor.handleRedo}
+            onExport={editor.handleExport}
           />
-        </header>
-        {error && (
-          <Alert tone="danger" className="editor-error">
-            <span className="wal-copyable">{error}</span>
-            <Button size="small" onClick={() => fileInput.current?.click()}>
-              重新选择文件
-            </Button>
-            <Button size="small" variant="ghost" onClick={() => setError(null)}>
-              关闭
-            </Button>
-          </Alert>
-        )}
-        <div className="editor-workspace">
-          <div className="editor-form">
-            <MetadataFields theme={theme} onChange={changeMeta} />
-            <div className="editor-add-patch">
-              <Button onClick={() => handleAddPatch('main-script')}>添加主脚本补丁</Button>
-              <Button variant="ghost" onClick={() => handleAddPatch('file')}>
-                添加文件补丁
+          {editor.importError && (
+            <Alert tone="danger" className="editor-alert">
+              <span className="editor-alert-text wal-copyable">{editor.importError}</span>
+              <Button size="small" variant="ghost" onClick={editor.handleDismissImportError}>
+                关闭
               </Button>
-            </div>
-            {Object.keys(theme.asarPatches).length === 0 && <p className="editor-empty">尚未添加补丁</p>}
-            {Object.entries(theme.asarPatches).map(([path, patches]) => (
-              <section key={path} className="editor-archive" aria-label={path}>
-                <h2 className="editor-archive-path wal-copyable">{path}</h2>
-                {patches.map((patch, index) => (
-                  <PatchEditor
-                    key={`${path}-${index}`}
-                    patch={patch}
-                    index={index}
-                    onChange={(update) => changeTheme((current) => updatePatch(current, path, index, update))}
-                    onRemove={() => changeTheme((current) => removePatch(current, path, index))}
-                    onRequestEntry={setEntry}
-                  />
-                ))}
-              </section>
-            ))}
+            </Alert>
+          )}
+          {editor.brokenDraft && (
+            <Alert tone="warning" className="editor-alert">
+              <span className="editor-alert-text wal-copyable">
+                上次暂存的草稿无法读取：{editor.brokenDraft.error}
+                {editor.brokenCopy && `（${editor.brokenCopy}）`}
+              </span>
+              <Button size="small" onClick={editor.handleCopyBrokenDraft}>
+                复制草稿原文
+              </Button>
+              <Button size="small" variant="ghost" onClick={editor.handleDismissBrokenDraft}>
+                关闭
+              </Button>
+            </Alert>
+          )}
+        </header>
+        <ThemeOutline
+          className="editor-outline"
+          theme={theme}
+          selection={selection}
+          editorId={PANE_ID}
+          onSelectTheme={editor.handleSelectTheme}
+          onSelectPatch={editor.handleSelectPatch}
+          onAddPatch={editor.handleAddPatch}
+        />
+        <section
+          className="editor-pane"
+          id={PANE_ID}
+          aria-label={selection.type === 'patch' ? '编辑补丁' : '编辑主题信息'}
+        >
+          <div className="editor-pane-content">
+            {selection.type === 'patch' && selectedPatch ? (
+              <PatchEditor
+                key={editor.editorKey}
+                path={selection.path}
+                patch={selectedPatch}
+                archives={archives}
+                targetId={TARGET_ID}
+                onChange={editor.handleUpdatePatch}
+                onCommit={editor.handleCheckpoint}
+                onMoveArchive={editor.handleMoveArchive}
+                onRemove={editor.handleRemovePatch}
+              />
+            ) : (
+              <ThemeInfo
+                theme={theme}
+                onChange={editor.handleMeta}
+                onCommit={editor.handleCheckpoint}
+                onAddPatch={editor.handleAddPatch}
+              />
+            )}
           </div>
-          <YamlPreview content={yaml} />
-        </div>
+        </section>
+        <YamlPreview className="editor-yaml" content={editor.yaml} />
       </main>
-      {entry && <EntryDialog request={entry} onClose={() => setEntry(null)} />}
+      <Toast
+        key={editor.removal.serial}
+        open={editor.removal.open}
+        onOpenChange={(open) => !open && editor.handleCloseRemoval()}
+        duration={REMOVAL_TOAST_DURATION}
+        tone="neutral"
+        closeLabel="关闭"
+        className="editor-toast"
+      >
+        <span className="editor-toast-text">已移除 {editor.removal.label}</span>
+        <Button size="small" onClick={editor.handleUndoRemoval}>
+          撤销
+        </Button>
+      </Toast>
     </CakeProvider>
   )
 }

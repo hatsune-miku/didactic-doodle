@@ -1,0 +1,27 @@
+.color-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .color-list-label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .color-list-help {
+    color: var(--cake-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .color-list-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .color-list-add {
+    align-self: flex-start;
+  }
+}

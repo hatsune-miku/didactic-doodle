@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  addPatch,
   createHistory,
   createPatch,
   createTheme,
   historyReducer,
+  movePatch,
   readTheme,
   removePatch,
+  renameKey,
   updatePatch,
   writeTheme,
 } from './model'
@@ -18,7 +21,7 @@ describe('editor model', () => {
     const undone = historyReducer(updated, { type: 'undo' })
     expect(undone.present).toEqual(initial.present)
     expect(historyReducer(undone, { type: 'redo' }).present.name).toBe('示例')
-    expect(initial.present.name).toBe('')
+    expect(initial.present.name).toBeUndefined()
     expect(historyReducer(undone, { type: 'update', update: (theme) => ({ ...theme, id: 'new' }) }).future).toEqual([])
   })
   it('preserves styles and other patches while editing one target', () => {
@@ -53,5 +56,44 @@ describe('editor model', () => {
       'a.asar 的第 1 个补丁的 path'
     )
     expect(() => readTheme('asarPatches: []')).toThrow('asarPatches')
+  })
+  it('merges consecutive edits of one field into a single undo step', () => {
+    let state = createHistory()
+    for (const name of ['樱', '樱花', '樱花粉'])
+      state = historyReducer(state, { type: 'update', update: (theme) => ({ ...theme, name }), merge: 'name' })
+    expect(state.past).toHaveLength(1)
+    state = historyReducer(state, { type: 'checkpoint' })
+    state = historyReducer(state, {
+      type: 'update',
+      update: (theme) => ({ ...theme, name: '樱花粉 2' }),
+      merge: 'name',
+    })
+    expect(state.past).toHaveLength(2)
+    state = historyReducer(state, { type: 'update', update: (theme) => ({ ...theme, id: 'sakura' }), merge: 'id' })
+    expect(state.past).toHaveLength(3)
+    expect(historyReducer(historyReducer(state, { type: 'undo' }), { type: 'undo' }).present.name).toBe('樱花粉')
+    expect(historyReducer(state, { type: 'update', update: (theme) => theme, merge: 'id' })).toBe(state)
+  })
+  it('moves a patch to the end of another archive and drops the emptied one', () => {
+    const main = createPatch('main-script')
+    const file = createPatch('file')
+    const theme = addPatch(addPatch(createTheme(), 'a.asar', main), 'b.asar', file)
+    const moved = movePatch(theme, 'a.asar', 0, 'b.asar')
+    expect(moved.asarPatches).toEqual({ 'b.asar': [file, main] })
+    expect(movePatch(theme, 'a.asar', 0, 'a.asar')).toBe(theme)
+    expect(movePatch(theme, 'a.asar', 3, 'b.asar')).toBe(theme)
+  })
+  it('renames a key while keeping its position', () => {
+    const colors = { '--a': '#111', '--b': '#222', '--c': '#333' }
+    expect(Object.keys(renameKey(colors, '--b', '--x'))).toEqual(['--a', '--x', '--c'])
+    expect(renameKey(colors, '--missing', '--x')).toBe(colors)
+  })
+  it('writes fields in a stable order and omits empty optional text', () => {
+    const patch = { ...createPatch('file'), path: 'dist/index.js', description: '', customScript: '' }
+    const theme = addPatch({ ...createTheme(), name: '示例', id: '' }, 'a.asar', patch)
+    expect(writeTheme(theme)).toBe(
+      'name: 示例\nasarPatches:\n  a.asar:\n    - kind: file\n      path: dist/index.js\n' +
+        '      styleOverridesBySelector: {}\n      colorOverrides: {}\n      enableDevTools: false\n'
+    )
   })
 })

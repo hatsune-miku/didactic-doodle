@@ -120,6 +120,8 @@ yarn dev
 yarn build
 ```
 
+编辑器把草稿暂存在当前浏览器中，刷新页面不会丢失；交给桌面端导入的仍是导出的 YAML 文件。
+
 ## 发布流程
 
 `.github/workflows/main.yml` 会在推送到 `release` 分支时运行测试，构建 Windows x64、macOS Apple Silicon 和 Intel 版本，并创建 GitHub 草稿 Release。该流程通过 `tauri-apps/tauri-action` 上传常规构建产物；macOS KFC ZIP 另存为 workflow artifact。不生成 updater 清单 `latest.json`，也不需要 updater 签名 Secret。

@@ -1,0 +1,43 @@
+.theme-outline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px;
+  border-radius: var(--cake-radius-large);
+  background: var(--cake-surface);
+  color: var(--cake-surface-text);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+
+  .theme-outline-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 10px;
+  }
+
+  .theme-outline-archive {
+    padding: 0 10px 2px;
+    color: var(--cake-muted);
+    font-family: var(--cake-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .theme-outline-patches {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .theme-outline-add {
+    align-self: flex-start;
+    margin: 10px 4px 4px;
+  }
+}

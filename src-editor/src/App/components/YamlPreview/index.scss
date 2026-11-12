@@ -1,33 +1,47 @@
 .yaml-preview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   min-width: 0;
-  min-height: 380px;
-  height: calc(100dvh - 112px);
-  position: sticky;
-  top: 24px;
+  min-height: 0;
+  border-radius: var(--cake-radius-large);
+  background: var(--cake-surface);
+  color: var(--cake-surface-text);
+  overflow: hidden;
 
-  .yaml-preview-toolbar {
+  .yaml-preview-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    color: var(--cake-muted);
+    padding: 8px 8px 0 16px;
   }
+
+  .yaml-preview-meta {
+    color: var(--cake-muted);
+    font-size: 12px;
+  }
+
+  .yaml-preview-alert {
+    flex-wrap: wrap;
+    margin: 8px 12px 0;
+    overflow-wrap: anywhere;
+  }
+
   .yaml-preview-code {
     flex: 1;
-    width: 100%;
-    resize: none;
-    font:
-      12px / 1.7 ui-monospace,
-      SFMono-Regular,
-      Consolas,
-      monospace;
+    min-height: 0;
+    margin: 0;
+    padding: 8px 16px 16px;
+    font-family: var(--cake-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow: auto;
     tab-size: 2;
-  }
-  @media (max-width: 900px) {
-    position: static;
-    height: 440px;
+
+    &:focus-visible {
+      outline: 2px solid var(--cake-focus);
+      outline-offset: -2px;
+      border-radius: var(--cake-radius-large);
+    }
   }
 }

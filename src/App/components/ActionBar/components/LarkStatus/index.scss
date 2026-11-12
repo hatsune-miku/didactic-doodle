@@ -1,0 +1,18 @@
+.lark-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 32px;
+  padding-left: 4px;
+  color: var(--cake-muted);
+  font-size: 13px;
+
+  .lark-status-indicator {
+    flex: none;
+  }
+
+  .lark-status-label {
+    white-space: nowrap;
+  }
+}

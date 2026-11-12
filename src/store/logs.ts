@@ -33,3 +33,10 @@ export const useLogsStore = create<LogsStore>((set) => ({
 function isAllCapitalized(text: string): boolean {
   return Boolean(text) && text.toUpperCase() === text && /^[A-Z]+$/.test(text)
 }
+
+const FAILURE_PATTERN = /失败|错误|error|denied/i
+
+/** 粗略识别失败记录，仅用于高亮和提示，不参与任何业务判断。 */
+export function isFailureLog(text: string): boolean {
+  return FAILURE_PATTERN.test(text)
+}

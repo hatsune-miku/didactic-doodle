@@ -1,0 +1,13 @@
+.library-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 40px;
+
+  .library-bar-help {
+    display: flex;
+    margin-left: auto;
+    padding-right: 4px;
+  }
+}

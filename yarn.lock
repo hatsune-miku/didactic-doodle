@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@a1knla/cakeui@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmmirror.com/@a1knla/cakeui/-/cakeui-0.4.0.tgz#e817659d9c25d024281ce956b29fae38c9cc777b"
-  integrity sha512-eV6U64W8VwyAq3p8YSKbzatt22Pn6y/QnEaQ/XzvYL/GQ3GHmQOlaomoXwE41/cAau1XUlF7VrsCA+e1p7ilKQ==
+"@a1knla/cakeui@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmmirror.com/@a1knla/cakeui/-/cakeui-0.5.0.tgz#67b967440caa356d9d0fdf3da7ad231cc00abfd9"
+  integrity sha512-I5R6B99a+Gr701XQPafP4uLyJMyviHZm9Wv62Y973J87UAmjC7SSC62ZtDkBvzj6IpU5+ksHr3sfBJqd+q6dnA==
 
 "@babel/code-frame@^7.27.1":
   version "7.27.1"

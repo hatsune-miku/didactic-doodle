@@ -1,0 +1,21 @@
+.inspector {
+  gap: 12px;
+  min-height: 0;
+
+  // 选中标签用表面色而非强调色，强调色留给主要操作。
+  .inspector-tabs {
+    --cake-selected: var(--cake-surface-strong);
+    --cake-selected-ink: var(--cake-text);
+    flex: none;
+  }
+
+  // 面板只设定尺寸与表面，显示与隐藏仍由 TabPanel 的 hidden 控制。
+  .inspector-panel {
+    position: relative;
+    min-height: 0;
+    border-radius: var(--cake-radius-large);
+    background: var(--cake-surface);
+    color: var(--cake-surface-text);
+    overflow: hidden;
+  }
+}

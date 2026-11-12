@@ -1,0 +1,76 @@
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+
+  .action-bar-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .action-bar-progress-bar {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .action-bar-progress-text {
+    flex: none;
+    color: var(--cake-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .action-bar-alert {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    overflow-wrap: anywhere;
+  }
+
+  .action-bar-alert-text {
+    flex: 1 1 220px;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  .action-bar-alert-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .action-bar-done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    padding: 0 0 0 4px;
+    font-size: 13px;
+  }
+
+  .action-bar-done-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .action-bar-done-dismiss {
+    flex: none;
+  }
+
+  .action-bar-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+  }
+
+  .action-bar-buttons {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+}

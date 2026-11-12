@@ -1,0 +1,130 @@
+.theme-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 4px 12px 4px 2px;
+  border-radius: calc(var(--cake-radius-large) - 6px);
+  background: var(--cake-surface);
+  transition: background-color var(--cake-fast) var(--cake-ease);
+
+  &:hover {
+    background: color-mix(in srgb, var(--cake-hover) 55%, var(--cake-surface));
+  }
+
+  &[data-selected='true'] {
+    background: var(--cake-hover);
+  }
+
+  &[data-dragging='true'] {
+    z-index: 1;
+    background: var(--cake-popup);
+    box-shadow: var(--cake-shadow);
+  }
+
+  .theme-row-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 22px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cake-muted);
+    opacity: 0.55;
+    cursor: grab;
+    touch-action: none;
+    transition: opacity var(--cake-fast) var(--cake-ease);
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cake-focus);
+      outline-offset: -2px;
+    }
+
+    &:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+  }
+
+  .theme-row-check {
+    flex: none;
+  }
+
+  .theme-row-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+    align-self: stretch;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-variant-ligatures: none;
+    text-align: left;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--cake-focus);
+      outline-offset: -2px;
+    }
+  }
+
+  .theme-row-name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color var(--cake-fast) var(--cake-ease);
+  }
+
+  .theme-row-summary {
+    overflow: hidden;
+    color: var(--cake-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .theme-row-priority {
+    flex: none;
+    min-width: 18px;
+    color: var(--cake-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  &[data-enabled='false'] {
+    .theme-row-name {
+      color: var(--cake-muted);
+    }
+  }
+
+  &[data-invalid='true'] {
+    .theme-row-summary {
+      color: var(--cake-danger);
+    }
+  }
+}

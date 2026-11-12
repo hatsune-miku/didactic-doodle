@@ -14,28 +14,53 @@ const entries = [
   { id: 'sakura', fileName: 'sakura.yaml', enabled: true },
   { id: 'type', fileName: 'type.yaml', enabled: true },
   { id: 'quiet', fileName: 'quiet.yaml', enabled: false },
+  ...(scenario === 'broken' ? [{ id: 'legacy', fileName: 'legacy.yaml', enabled: true }] : []),
 ]
 const names = ['浅樱', '清晰文字', '安静模式']
 const descriptions = ['柔和的消息背景与粉色强调', '调整消息文字与段落间距', '收起不常用的视觉元素']
-const themes = Object.fromEntries(
-  entries.map((entry, index) => [
+const patchSets = [
+  [
+    {
+      kind: 'main-script',
+      subject: 'messenger',
+      description: '消息气泡与侧栏配色',
+      styleOverridesBySelector: {
+        '.message-bubble': { 'background-color': '#fbe9ee', color: '#744958' },
+        '.navigation-sidebar': { 'background-color': 'rgb(248, 240, 242)' },
+      },
+      colorOverrides: { '--primary-pri-500': '#e8788a', '--bg-body': '#fffafb' },
+      enableDevTools: false,
+    },
+  ],
+  [
+    {
+      kind: 'file',
+      path: 'dist/messenger/index.html',
+      styleOverridesBySelector: { '.message-text': { 'line-height': '1.7', 'letter-spacing': '0.01em' } },
+      colorOverrides: {},
+      enableDevTools: true,
+      customScript: "document.documentElement.dataset.walTheme = 'type'",
+    },
+  ],
+  [
+    {
+      kind: 'main-script',
+      subject: 'messenger',
+      styleOverridesBySelector: { '.feed-banner': { display: 'none' } },
+      colorOverrides: {},
+      enableDevTools: false,
+    },
+  ],
+]
+const themes: Record<string, string> = Object.fromEntries(
+  entries.slice(0, 3).map((entry, index) => [
     entry.fileName,
     JSON.stringify({
       id: entry.id,
       name: names[index],
       description: descriptions[index],
       author: 'Miku',
-      asarPatches: {
-        'webcontent/messenger.asar': [
-          {
-            kind: 'main-script',
-            subject: 'messenger',
-            styleOverridesBySelector: { '.message': { color: '#744958', 'line-height': '1.7' } },
-            colorOverrides: {},
-            enableDevTools: false,
-          },
-        ],
-      },
+      asarPatches: { 'webcontent/messenger.asar': patchSets[index] },
     }),
   ])
 )
@@ -57,18 +82,22 @@ mockIPC(
       case 'is_lark_running':
         return running
       case 'launch_lark':
+        await new Promise((resolve) => setTimeout(resolve, 600))
         running = true
         return
       case 'kill_lark':
+        await new Promise((resolve) => setTimeout(resolve, 600))
         running = false
         return
       case 'read_theme_manifest':
+        if (scenario === 'loading') await new Promise(() => {})
         if (scenario === 'missing') throw new Error('读取主题清单失败: Permission denied')
         return manifest
       case 'write_theme_manifest':
         manifest = String(args.content)
         return
       case 'read_theme':
+        if (!(String(args.fileName) in themes)) throw new Error(`读取主题失败: ${String(args.fileName)} 不存在`)
         return themes[String(args.fileName)]
       case 'pick_theme_file':
         return { suggestedId: 'sakura', content: themes['sakura.yaml'] }

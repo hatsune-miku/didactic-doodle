@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "online": "yarn build && scp -r dist/* miku@irislivier.com:/var/www/html/wal-theme"
+    "online": "yarn build && scp -r dist/assets miku@vanillacake.cn:/var/www/html/wal-theme/ && scp dist/index.html miku@vanillacake.cn:/var/www/html/wal-theme/.index.html.new && ssh miku@vanillacake.cn mv -f /var/www/html/wal-theme/.index.html.new /var/www/html/wal-theme/index.html"
   },
   "dependencies": {
     "@a1knla/cakeui": "0.5.0",

@@ -1,18 +1,12 @@
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
-    error::make_tauri_result,
+    error::{make_tauri_result, WalResult},
     shared::lark_helper_session,
     utils::{
         lark::{find::LarkFinder, wrappers::session},
         log::logger,
-        platform::{
-            os::join_components,
-            process::{
-                is_process_running, kill_all_processes, launch_process,
-                wait_until_all_processes_ended,
-            },
-        },
+        platform::process,
         theme_store,
     },
 };
@@ -22,59 +16,80 @@ pub mod shared;
 pub mod utils;
 
 #[tauri::command]
-fn is_lark_running() -> bool {
-    is_process_running("Feishu.exe")
+async fn is_lark_running() -> Result<bool, String> {
+    blocking(|| with_lark_path(process::is_running)).await
 }
 
 #[tauri::command]
-fn kill_lark() -> bool {
-    kill_all_processes("Feishu.exe")
+async fn kill_lark() -> Result<(), String> {
+    blocking(|| {
+        let _operation = crate::shared::lock_lark_operation()?;
+        with_lark_path(process::kill)
+    })
+    .await
 }
 
 #[tauri::command]
-async fn wait_until_lark_ended() {
-    wait_until_all_processes_ended("Feishu.exe").await;
-}
-
-#[tauri::command]
-fn launch_lark() -> () {
-    let _ = lark_helper_session(|helper| {
-        let path = helper.locate()?;
-        let lark_path = join_components(&[&path, "Feishu.exe"])?;
-        let _ = launch_process(&lark_path);
-        Ok(())
-    });
-}
-
-#[tauri::command]
-fn get_lark_base_path() -> tauri::Result<String> {
-    make_tauri_result(lark_helper_session(|helper| helper.locate()))
-}
-
-#[tauri::command]
-fn create_lark_session() -> tauri::Result<String> {
-    let session = session::create_lark_session().map_err(|_| tauri::Error::InvokeKey)?;
-    let session = session.lock().map_err(|_| tauri::Error::InvokeKey)?;
-    Ok(session.id().to_owned())
-}
-
-#[tauri::command]
-fn close_lark_session(id: String) -> tauri::Result<()> {
-    session::close_lark_session(&id).map_err(|_| tauri::Error::InvokeKey)?;
+async fn wait_until_lark_ended() -> Result<(), String> {
+    while is_lark_running().await? {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    }
     Ok(())
 }
 
 #[tauri::command]
-fn invoke_lark_session(id: String, command: String, args: Vec<String>) -> tauri::Result<String> {
-    let result =
-        session::interpret_command(&id, &command, args).map_err(|_| tauri::Error::InvokeKey)?;
-    Ok(result)
+async fn launch_lark() -> Result<(), String> {
+    blocking(|| {
+        let _operation = crate::shared::lock_lark_operation()?;
+        with_lark_path(process::launch)
+    })
+    .await
 }
 
-fn app_data_dir(app: &AppHandle) -> tauri::Result<std::path::PathBuf> {
+fn with_lark_path<T>(callback: impl FnOnce(&std::path::Path) -> WalResult<T>) -> WalResult<T> {
+    let path = lark_helper_session(|helper| helper.locate())?;
+    callback(std::path::Path::new(&path))
+}
+
+async fn blocking<T: Send + 'static>(
+    callback: impl FnOnce() -> WalResult<T> + Send + 'static,
+) -> Result<T, String> {
+    let result = tauri::async_runtime::spawn_blocking(callback)
+        .await
+        .map_err(|error| error.to_string())?;
+    make_tauri_result(result)
+}
+
+#[tauri::command]
+fn get_lark_base_path() -> Result<String, String> {
+    make_tauri_result(lark_helper_session(|helper| helper.locate()))
+}
+
+#[tauri::command]
+fn create_lark_session() -> Result<String, String> {
+    let session = make_tauri_result(session::create_lark_session())?;
+    let session = session.lock().map_err(|error| error.to_string())?;
+    Ok(session.id().to_owned())
+}
+
+#[tauri::command]
+fn close_lark_session(id: String) -> Result<(), String> {
+    make_tauri_result(session::close_lark_session(&id))
+}
+
+#[tauri::command]
+async fn invoke_lark_session(
+    id: String,
+    command: String,
+    args: Vec<String>,
+) -> Result<String, String> {
+    blocking(move || session::interpret_command(&id, &command, args)).await
+}
+
+fn app_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     app.path()
         .app_data_dir()
-        .map_err(|_| tauri::Error::InvokeKey)
+        .map_err(|error| error.to_string())
 }
 
 #[derive(serde::Serialize)]
@@ -86,7 +101,7 @@ struct PickedThemeDto {
 
 /// 弹出文件选择框并读取选中 YAML 的内容（不写入托管目录）。返回内容与回退 id；取消时返回 null。
 #[tauri::command]
-async fn pick_theme_file(app: AppHandle) -> tauri::Result<Option<PickedThemeDto>> {
+async fn pick_theme_file(app: AppHandle) -> Result<Option<PickedThemeDto>, String> {
     use tauri_plugin_dialog::DialogExt;
 
     let picked = app
@@ -100,8 +115,8 @@ async fn pick_theme_file(app: AppHandle) -> tauri::Result<Option<PickedThemeDto>
         return Ok(None);
     };
 
-    let src = file_path.into_path().map_err(|_| tauri::Error::InvokeKey)?;
-    let picked = theme_store::read_source(&src).map_err(|_| tauri::Error::InvokeKey)?;
+    let src = file_path.into_path().map_err(|error| format!("无法读取所选文件路径: {error}"))?;
+    let picked = theme_store::read_source(&src).map_err(|error| error.to_string())?;
     Ok(Some(PickedThemeDto {
         suggested_id: picked.suggested_id,
         content: picked.content,
@@ -110,43 +125,63 @@ async fn pick_theme_file(app: AppHandle) -> tauri::Result<Option<PickedThemeDto>
 
 /// 按 id 派生文件名写入托管目录（同名覆盖），返回实际文件名。
 #[tauri::command]
-fn save_theme(app: AppHandle, id: String, content: String) -> tauri::Result<String> {
+fn save_theme(app: AppHandle, id: String, content: String) -> Result<String, String> {
     let dir = app_data_dir(&app)?;
-    theme_store::save_theme(&dir, &id, &content).map_err(|_| tauri::Error::InvokeKey)
+    theme_store::save_theme(&dir, &id, &content).map_err(|error| error.to_string())
 }
 
 /// 从托管目录新鲜读取一个主题文件（始终读盘，外部编辑后立即生效）
 #[tauri::command]
-fn read_theme(app: AppHandle, file_name: String) -> tauri::Result<String> {
+fn read_theme(app: AppHandle, file_name: String) -> Result<String, String> {
     let dir = app_data_dir(&app)?;
-    theme_store::read_theme(&dir, &file_name).map_err(|_| tauri::Error::InvokeKey)
+    theme_store::read_theme(&dir, &file_name).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn delete_theme(app: AppHandle, file_name: String) -> tauri::Result<()> {
+fn delete_theme(app: AppHandle, file_name: String) -> Result<(), String> {
     let dir = app_data_dir(&app)?;
-    theme_store::delete_theme(&dir, &file_name).map_err(|_| tauri::Error::InvokeKey)
+    theme_store::delete_theme(&dir, &file_name).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn read_theme_manifest(app: AppHandle) -> tauri::Result<String> {
+fn read_theme_manifest(app: AppHandle) -> Result<String, String> {
     let dir = app_data_dir(&app)?;
-    theme_store::read_manifest(&dir).map_err(|_| tauri::Error::InvokeKey)
+    theme_store::read_manifest(&dir).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn write_theme_manifest(app: AppHandle, content: String) -> tauri::Result<()> {
+fn write_theme_manifest(app: AppHandle, content: String) -> Result<(), String> {
     let dir = app_data_dir(&app)?;
-    theme_store::write_manifest(&dir, &content).map_err(|_| tauri::Error::InvokeKey)
+    theme_store::write_manifest(&dir, &content).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn open_lark_install_directory() -> tauri::Result<()> {
-    let path = get_lark_base_path().map_err(|_| tauri::Error::InvokeKey)?;
-    let _ = tokio::process::Command::new("explorer.exe")
-        .arg(path.as_str())
-        .spawn();
+async fn open_lark_install_directory() -> Result<(), String> {
+    blocking(|| with_lark_path(process::reveal)).await
+}
+
+#[tauri::command]
+async fn check_lark_write_access() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return blocking(|| {
+        with_lark_path(|path| {
+            use crate::utils::lark::macos::{access, installation::Installation};
+            let installation = Installation::open(path)?;
+            access::probe_directory(&installation.resources.join("webcontent"))?;
+            Ok(())
+        })
+    })
+    .await;
+    #[cfg(not(target_os = "macos"))]
     Ok(())
+}
+
+#[tauri::command]
+async fn open_app_management_settings() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return blocking(crate::utils::lark::macos::access::open_settings).await;
+    #[cfg(not(target_os = "macos"))]
+    Err("此设置仅适用于 macOS".into())
 }
 
 fn subscribe_log(app: &AppHandle) {
@@ -171,19 +206,6 @@ fn setup_debug(_: &mut tauri::App) {
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     if tauri::is_dev() {
         setup_debug(app);
-    } else {
-        let windows_map = app.webview_windows();
-        let windows = windows_map.values().collect::<Vec<_>>();
-        windows.iter().for_each(|w| {
-            let _ = w.eval(
-                r#"window.addEventListener('DOMContentLoaded', () => {
-                    document.body.oncontextmenu = function(e) { e.preventDefault(); return false };
-                    const style = document.createElement('style');
-                    style.textContent = '*, *::before, *::after { user-select: none !important; -webkit-user-select: none !important; }';
-                    document.head.appendChild(style);
-                })"#,
-            );
-        });
     }
     subscribe_log(app.handle());
     Ok(())
@@ -193,7 +215,6 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(setup)
@@ -207,6 +228,8 @@ pub fn run() {
             invoke_lark_session,
             close_lark_session,
             open_lark_install_directory,
+            check_lark_write_access,
+            open_app_management_settings,
             pick_theme_file,
             save_theme,
             read_theme,

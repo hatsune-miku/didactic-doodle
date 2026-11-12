@@ -1,0 +1,26 @@
+{
+  "id": "wal-assistant-lark",
+  "name": "WalAssistantLark (飞书Mod管理器)",
+  "description": "给飞书(Lark)客户端打主题补丁的 Tauri 工具,内置主题编辑器",
+  "author": "cake",
+  "tags": ["飞书", "主题", "Windows", "macOS"],
+  "runtime": "none",
+  "components": [
+    {
+      "kind": "archive",
+      "label": "GUI",
+      "platforms": {
+        "windows-x64": { "artifact": "wal-assistant-lark_{version}_windows-x64.zip" },
+        "macos-arm64": {
+          "artifact": "wal-assistant-lark_{version}_macos-arm64.zip",
+          "entry": "launch.command"
+        },
+        "macos-x64": {
+          "artifact": "wal-assistant-lark_{version}_macos-x64.zip",
+          "entry": "launch.command"
+        }
+      },
+      "entry": "wal-assistant-lark.exe"
+    }
+  ]
+}

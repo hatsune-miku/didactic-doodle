@@ -1,40 +1,45 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { nativeBridge } from '../ports/bridge'
 
+const POLL_INTERVAL = 2000
+
+/** 轮询飞书进程状态。refresh 立即重新读取一次，用于启动或退出飞书之后。 */
 export function useLarkRunning() {
-  const [larkRunning, setLarkRunning] = useState<boolean>(false)
-  const checkRunningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [running, setRunning] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const checkRef = useRef<() => void>(() => {})
 
   useEffect(() => {
-    nativeBridge.isLarkRunning().then(setLarkRunning)
-
-    const checkProc = () => {
-      nativeBridge.isLarkRunning().then((running) => {
-        if (!running) {
-          checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          return
+    let disposed = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    async function checkRunning() {
+      if (timer) clearTimeout(timer)
+      try {
+        const next = await nativeBridge.isLarkRunning()
+        if (!disposed) {
+          setRunning(next)
+          setError(null)
         }
-        setLarkRunning(true)
-        nativeBridge
-          .waitUntilLarkEnded()
-          .then(() => {
-            setLarkRunning(false)
-            checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          })
-          .catch(() => {
-            setLarkRunning(false)
-            checkRunningTimerRef.current = setTimeout(checkProc, 1000)
-          })
-      })
-    }
-    checkProc()
-    return () => {
-      if (checkRunningTimerRef.current) {
-        clearTimeout(checkRunningTimerRef.current)
-        checkRunningTimerRef.current = null
+      } catch (error) {
+        if (!disposed) {
+          setRunning(null)
+          setError(String(error))
+        }
+      } finally {
+        // refresh 可能与轮询并发，始终只保留一个待执行的计时器。
+        if (timer) clearTimeout(timer)
+        if (!disposed) timer = setTimeout(checkRunning, POLL_INTERVAL)
       }
+    }
+    checkRef.current = checkRunning
+    checkRunning()
+    return () => {
+      disposed = true
+      if (timer) clearTimeout(timer)
     }
   }, [])
 
-  return larkRunning
+  const refresh = useCallback(() => checkRef.current(), [])
+  return { running, error, refresh }
 }

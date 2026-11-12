@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { mergeThemes } from './merge'
 import { WalAsarPatchFile, WalAsarPatchMainScript, WalTheme } from './types'
 
@@ -80,20 +81,22 @@ describe('mergeThemes', () => {
   })
 
   it('treats main-script patches with the same subject as the same target', () => {
-    const mk = (color: string): WalTheme => ({
-      asarPatches: {
-        'a.asar': [
-          {
-            kind: 'main-script',
-            subject: 'main',
-            styleOverridesBySelector: {},
-            colorOverrides: { '--c': color },
-            enableDevTools: false,
-            customScript: '',
-          } as WalAsarPatchMainScript,
-        ],
-      },
-    })
+    function mk(color: string): WalTheme {
+      return {
+        asarPatches: {
+          'a.asar': [
+            {
+              kind: 'main-script',
+              subject: 'main',
+              styleOverridesBySelector: {},
+              colorOverrides: { '--c': color },
+              enableDevTools: false,
+              customScript: '',
+            } as WalAsarPatchMainScript,
+          ],
+        },
+      }
+    }
 
     const merged = mergeThemes([mk('red'), mk('blue')])
     const patches = merged.asarPatches['a.asar']

@@ -1,6 +1,6 @@
+import { getVersion } from '@tauri-apps/api/app'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { getVersion } from '@tauri-apps/api/app'
 
 export type LarkSessionId = string
 
@@ -90,12 +90,13 @@ export class NativeBridge {
     return invoke<T>('invoke_lark_session', { id, command, args })
   }
 
-  async withLarkSession<T>(callback: (session: LarkSession) => Promise<T>): Promise<void> {
+  async withLarkSession<T>(callback: (session: LarkSession) => Promise<T>): Promise<T> {
+    const session = await this.createLarkSession()
     try {
-      const session = await this.createLarkSession()
-      await callback(session)
+      return await callback(session)
+    } finally {
       await session.close()
-    } catch {}
+    }
   }
 
   isLarkRunning(): Promise<boolean> {
@@ -120,6 +121,14 @@ export class NativeBridge {
 
   openLarkInstallDirectory(): Promise<void> {
     return invoke('open_lark_install_directory')
+  }
+
+  checkLarkWriteAccess(): Promise<void> {
+    return invoke('check_lark_write_access')
+  }
+
+  openAppManagementSettings(): Promise<void> {
+    return invoke('open_app_management_settings')
   }
 
   // 弹出文件选择框并读取选中 YAML 的内容（不写盘）。返回内容与回退 id；取消时返回 null。

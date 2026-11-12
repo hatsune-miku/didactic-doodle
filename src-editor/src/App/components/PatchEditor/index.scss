@@ -1,0 +1,78 @@
+.patch-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  .patch-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .patch-editor-kind {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .patch-editor-kind-label {
+    float: left;
+    margin-right: 2px;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .patch-editor-remove {
+    flex: none;
+    color: var(--cake-danger);
+  }
+
+  .patch-editor-target {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
+
+  .patch-editor-wide {
+    grid-column: 1 / -1;
+  }
+
+  .patch-editor-mono {
+    font-family: var(--cake-mono);
+  }
+
+  .patch-editor-code {
+    font-family: var(--cake-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    tab-size: 2;
+  }
+
+  .patch-editor-devtools {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .patch-editor-devtools-help {
+    color: var(--cake-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  // 按编辑区自身宽度而非窗口宽度折行。
+  @container (max-width: 479px) {
+    .patch-editor-target {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

@@ -1,0 +1,59 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  font-synthesis: none;
+  font-variant-ligatures: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+// 字体沿用 CakeUI 0.5.0 的默认字体栈：中文字体排在 system-ui 之前，避开微软雅黑等矮字形回退。
+.wal-app {
+  min-height: 100dvh;
+  font-variant-ligatures: none;
+}
+
+.wal-copyable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.wal-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

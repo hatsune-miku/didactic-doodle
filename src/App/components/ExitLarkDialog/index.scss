@@ -1,0 +1,7 @@
+.exit-lark-dialog {
+  width: min(420px, calc(100vw - 32px));
+
+  .exit-lark-dialog-error {
+    overflow-wrap: anywhere;
+  }
+}

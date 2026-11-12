@@ -1,6 +1,8 @@
-import { useLogsStore } from '../store/logs'
-import { WalTheme } from './types'
 import yaml from 'js-yaml'
+
+import { WalTheme } from './types'
+
+import { useLogsStore } from '../store/logs'
 
 export function isWalTheme(theme: unknown): theme is WalTheme {
   if (typeof theme !== 'object' || theme === null) {
@@ -23,18 +25,17 @@ export function isWalTheme(theme: unknown): theme is WalTheme {
   )
 }
 
-export function parseTheme(raw: string): WalTheme | null {
-  const createLog = useLogsStore.getState().add
+export function decodeTheme(raw: string): WalTheme {
+  const theme = yaml.load(raw)
+  if (!isWalTheme(theme)) throw new Error('主题格式不正确：需要 asarPatches 对象及补丁列表。')
+  return theme
+}
 
+export function parseTheme(raw: string): WalTheme | null {
   try {
-    const theme = yaml.load(raw) as WalTheme
-    if (!isWalTheme(theme)) {
-      createLog('解析主题失败: 格式不正确')
-      return null
-    }
-    return theme
+    return decodeTheme(raw)
   } catch (error) {
-    createLog(`解析主题失败: ${error}`)
+    useLogsStore.getState().add(`解析主题失败: ${String(error)}`)
     return null
   }
 }

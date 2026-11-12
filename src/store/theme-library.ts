@@ -1,14 +1,17 @@
 import { create } from 'zustand'
-import { nativeBridge } from '../ports/bridge'
-import { ThemeEntry, ThemeManifest, WalTheme } from '../theme/types'
-import { parseTheme } from '../theme'
+
 import { useLogsStore } from './logs'
+
+import { nativeBridge } from '../ports/bridge'
+import { decodeTheme } from '../theme'
+import { ThemeEntry, ThemeManifest, WalTheme } from '../theme/types'
 
 /** 库中的一条主题：清单条目 + 用于展示/预览的已解析内容（应用时一律重新读盘）。 */
 export interface LibraryItem {
   entry: ThemeEntry
   theme: WalTheme | null
   parseError: boolean
+  error?: string
 }
 
 interface ThemeLibraryStore {
@@ -22,7 +25,7 @@ interface ThemeLibraryStore {
   toggleEnabled: (id: string) => Promise<void>
   /** 按给定 id 顺序重排（顶部优先级最高）。 */
   reorder: (orderedIds: string[]) => Promise<void>
-  /** 按优先级（顶部最高）从磁盘新鲜读取所有启用项，跳过非法文件。 */
+  /** 按优先级（顶部最高）从磁盘新鲜读取所有启用项；任何读取或解析失败都停止应用。 */
   collectEnabledThemes: () => Promise<WalTheme[]>
 }
 
@@ -45,23 +48,31 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
   loaded: false,
 
   async load() {
-    let manifest: ThemeManifest = { themes: [] }
-    try {
-      manifest = JSON.parse(await nativeBridge.readThemeManifest()) as ThemeManifest
-    } catch (error) {
-      log(`读取主题清单失败: ${String(error)}`)
+    const manifest = JSON.parse(await nativeBridge.readThemeManifest()) as ThemeManifest
+    if (
+      !Array.isArray(manifest.themes) ||
+      !manifest.themes.every(
+        (entry) =>
+          entry !== null &&
+          typeof entry === 'object' &&
+          typeof entry.id === 'string' &&
+          typeof entry.fileName === 'string' &&
+          typeof entry.enabled === 'boolean'
+      )
+    ) {
+      throw new Error('主题清单格式错误：需要包含 id、fileName 和 enabled 的 themes 列表。')
     }
-
-    const entries = Array.isArray(manifest.themes) ? manifest.themes : []
+    const entries = manifest.themes
     const items = await Promise.all(
       entries.map(async (entry): Promise<LibraryItem> => {
         try {
           const content = await nativeBridge.readTheme(entry.fileName)
-          const theme = parseTheme(content)
-          return { entry, theme, parseError: theme === null }
-        } catch {
-          log(`主题文件丢失或无法读取: ${entry.fileName}`)
-          return { entry, theme: null, parseError: true }
+          const theme = decodeTheme(content)
+          return { entry, theme, parseError: false }
+        } catch (error) {
+          const message = `读取 ${entry.fileName} 失败: ${String(error)}`
+          log(message)
+          return { entry, theme: null, parseError: true, error: message }
         }
       })
     )
@@ -76,11 +87,7 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
       return
     }
 
-    const theme = parseTheme(picked.content)
-    if (!theme) {
-      log('导入失败：无法解析该 YAML')
-      return
-    }
+    const theme = decodeTheme(picked.content)
 
     // 以 YAML 的 id 作为唯一标识，缺省时回退源文件名
     const id = theme.id?.trim() || picked.suggestedId
@@ -93,15 +100,14 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
       // 同 id 覆盖：保留原有启用状态与列表位置，只更新文件名与内容
       const entry: ThemeEntry = { ...items[index].entry, fileName }
       nextItems = items.map((item, i) => (i === index ? { entry, theme, parseError: false } : item))
-      log(`已更新主题: ${theme.name?.trim() || id}`)
     } else {
       const entry: ThemeEntry = { id, fileName, enabled: true }
       nextItems = [...items, { entry, theme, parseError: false }]
-      log(`已导入主题: ${theme.name?.trim() || id}`)
     }
 
-    set({ items: nextItems })
     await persist(nextItems)
+    set({ items: nextItems })
+    log(`已${index >= 0 ? '更新' : '导入'}主题: ${theme.name?.trim() || id}`)
   },
 
   async removeTheme(id) {
@@ -109,18 +115,22 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
     if (!target) {
       return
     }
-    await nativeBridge.deleteTheme(target.entry.fileName).catch(() => {})
     const items = get().items.filter((item) => item.entry.id !== id)
-    set({ items })
     await persist(items)
+    try {
+      await nativeBridge.deleteTheme(target.entry.fileName)
+    } catch (error) {
+      throw new Error(`清理 ${target.entry.fileName} 失败: ${String(error)}`)
+    }
+    set({ items })
   },
 
   async toggleEnabled(id) {
     const items = get().items.map((item) =>
       item.entry.id === id ? { ...item, entry: { ...item.entry, enabled: !item.entry.enabled } } : item
     )
-    set({ items })
     await persist(items)
+    set({ items })
   },
 
   async reorder(orderedIds) {
@@ -128,11 +138,11 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
     const byId = new Map(items.map((item) => [item.entry.id, item]))
     const next = orderedIds.map((id) => byId.get(id)).filter((item): item is LibraryItem => Boolean(item))
     // 防御：数量对不上时不动，避免丢条目
-    if (next.length !== items.length) {
+    if (next.length !== items.length || new Set(orderedIds).size !== items.length) {
       return
     }
-    set({ items: next })
     await persist(next)
+    set({ items: next })
   },
 
   async collectEnabledThemes() {
@@ -141,14 +151,9 @@ export const useThemeLibraryStore = create<ThemeLibraryStore>((set, get) => ({
     for (const item of enabled) {
       try {
         const content = await nativeBridge.readTheme(item.entry.fileName)
-        const theme = parseTheme(content)
-        if (theme) {
-          themes.push(theme)
-        } else {
-          log(`跳过无法解析的主题: ${themeDisplayName(item)}`)
-        }
-      } catch {
-        log(`跳过无法读取的主题: ${themeDisplayName(item)}`)
+        themes.push(decodeTheme(content))
+      } catch (error) {
+        throw new Error(`读取启用的主题 ${themeDisplayName(item)} 失败: ${String(error)}`)
       }
     }
     return themes

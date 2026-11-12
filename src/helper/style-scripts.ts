@@ -12,15 +12,14 @@ export function makeStylesScript(patch: WalAsarPatchBase) {
 
   const styleOverridesBySelector = ${JSON.stringify(styleOverridesBySelector)}
 
-  const defaultSheet = window.document.styleSheets[0]
-  if (defaultSheet) {
-    Object.entries(styleOverridesBySelector).forEach(([selector, style]) => {
-      const rule = \`\${selector} { \${Object.entries(style)
+  const styleElement = document.createElement('style')
+  styleElement.dataset.walTheme = 'true'
+  styleElement.textContent = Object.entries(styleOverridesBySelector).map(([selector, style]) => {
+      return \`\${selector} { \${Object.entries(style)
         .map(([key, value]) => \`\${key}: \${value};\`)
         .join(' ')} }\`
-      defaultSheet.insertRule(rule)
-    })
-  }
+  }).join('\\n')
+  document.head.appendChild(styleElement)
 
   if (enableDevTools) {
     const el = document.createElement('script')
@@ -28,12 +27,8 @@ export function makeStylesScript(patch: WalAsarPatchBase) {
     el.onerror = (e) => {
       alert('failed to load eruda: ' + JSON.stringify(e))
     }
-    const el2 = document.createElement('script')
-    el2.innerHTML = 'eruda.init(); eruda.show()'
+    el.onload = () => { window.eruda.init(); window.eruda.show() }
     document.body.appendChild(el)
-    setTimeout(() => {
-      document.body.appendChild(el2)
-    }, 1000)
   }
 
   // WAL CUSTOM SCRIPT START
@@ -41,5 +36,9 @@ export function makeStylesScript(patch: WalAsarPatchBase) {
   // WAL CUSTOM SCRIPT END
 }
 
-start()`
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', start, { once: true })
+} else {
+  start()
+}`
 }

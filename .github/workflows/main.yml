@@ -11,7 +11,17 @@ jobs:
     permissions:
       contents: write
 
-    runs-on: 'windows-latest'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -22,22 +32,49 @@ jobs:
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
       - name: install frontend dependencies
-        run: yarn
+        run: yarn install --frozen-lockfile
+
+      - name: test frontend
+        run: |
+          yarn test
+          yarn test:editor
+
+      - name: check frontend style
+        run: yarn format:check
+
+      - name: test native patches
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
 
       - uses: tauri-apps/tauri-action@v0.6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: app-v__VERSION__
           releaseName: 'App v__VERSION__'
           releaseBody: '嘟嘟'
           releaseDraft: true
           prerelease: false
+          includeUpdaterJson: false
+          args: --target ${{ matrix.target }}
+
+      - name: package macOS for KFC
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version=$(node -p 'require("./src-tauri/tauri.conf.json").version')
+          yarn kfc:pack:macos --version "$version" --target '${{ matrix.target }}' --skip-build
+
+      - name: upload KFC archive
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfc-${{ matrix.target }}
+          path: dist-kfc/*.zip

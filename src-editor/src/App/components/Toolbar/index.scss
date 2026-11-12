@@ -1,0 +1,33 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toolbar-icon {
+    width: var(--cake-control-height);
+    padding: 0;
+  }
+
+  .toolbar-draft {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--cake-muted);
+    font-size: 12px;
+
+    &[data-tone='warning'] {
+      color: var(--cake-warning);
+    }
+  }
+
+  .toolbar-export {
+    margin-left: auto;
+  }
+}

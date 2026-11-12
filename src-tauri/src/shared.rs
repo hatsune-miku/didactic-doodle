@@ -6,6 +6,13 @@ use crate::{
 };
 
 pub static LARK_HELPER: LazyLock<Mutex<Lark>> = LazyLock::new(|| Mutex::new(Lark::new()));
+static LARK_OPERATION: Mutex<()> = Mutex::new(());
+
+pub fn lock_lark_operation() -> WalResult<MutexGuard<'static, ()>> {
+    LARK_OPERATION
+        .try_lock()
+        .map_err(|_| WalError::Message("正在处理飞书，请稍后重试".into()))
+}
 
 pub trait IntoLarkSessionResult<T> {
     fn into_lark_session_result(self) -> WalResult<T>;

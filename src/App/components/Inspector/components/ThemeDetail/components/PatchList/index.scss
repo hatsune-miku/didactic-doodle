@@ -1,0 +1,27 @@
+.patch-list-empty {
+  color: var(--cake-muted);
+  font-size: 12px;
+}
+
+.patch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+
+  .patch-list-archive {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .patch-list-archive-path {
+    color: var(--cake-muted);
+    font-family: var(--cake-mono);
+    font-size: 12px;
+    font-variant-ligatures: none;
+    overflow-wrap: anywhere;
+  }
+}

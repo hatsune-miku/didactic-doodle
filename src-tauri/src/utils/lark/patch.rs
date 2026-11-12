@@ -35,7 +35,6 @@ impl LarkAsarPatch for LarkAsarFile {
         info!("patching script: {}", path.display());
 
         let mut content = self.read_string(path)?;
-        let skip_pattern = "use strict";
         let patch_pattern_start = "\n/** WAL-ASSISTANT-LARK START */";
         let patch_pattern_end = "/** WAL-ASSISTANT-LARK END */\n";
 
@@ -44,22 +43,16 @@ impl LarkAsarPatch for LarkAsarFile {
             let erase_start_index = content.find(patch_pattern_start).unwrap();
             let erase_end_index =
                 content.find(patch_pattern_end).unwrap() + patch_pattern_end.len();
+            if erase_end_index < erase_start_index {
+                return Err(crate::error::WalError::AsarStructureError);
+            }
             content.replace_range(erase_start_index..erase_end_index, "");
         }
-
-        let start_index = if content.contains(skip_pattern) {
-            info!("skipping pattern found. inserting patch after skip pattern...");
-            let skip_pattern_index = content.find(skip_pattern).unwrap();
-            skip_pattern_index + skip_pattern.len() + 1
-        } else {
-            info!("no skip pattern found. inserting patch at the beginning of the file...");
-            0
-        };
-
-        content.insert_str(
-            start_index,
-            format!("{}\n{}\n{}", patch_pattern_start, script, patch_pattern_end).as_str(),
-        );
+        // Append outside the original script so strings containing "use strict"
+        // and bundled wrappers cannot be corrupted by a substring insertion.
+        content.push_str(&format!(
+            "{patch_pattern_start}\n;(() => {{\n{script}\n}})();\n{patch_pattern_end}"
+        ));
         Ok(PatchUnit {
             path: path.clone(),
             data: content.as_bytes().to_vec(),

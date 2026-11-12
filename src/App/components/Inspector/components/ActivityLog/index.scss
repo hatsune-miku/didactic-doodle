@@ -1,0 +1,61 @@
+.activity-log {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  .activity-log-view {
+    --cake-log-background: transparent;
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    padding: 14px 16px 6px;
+    border-radius: var(--cake-radius-large) var(--cake-radius-large) 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .activity-log-empty {
+    color: var(--cake-muted);
+  }
+
+  .activity-log-entry {
+    display: grid;
+    grid-template-columns: 8ch minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 1px 0;
+
+    &[data-tone='danger'] {
+      .activity-log-text {
+        color: var(--cake-danger);
+      }
+    }
+  }
+
+  .activity-log-time {
+    color: var(--cake-muted);
+    font-family: var(--cake-mono);
+    font-variant-ligatures: none;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .activity-log-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .activity-log-footer {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 8px 8px 16px;
+  }
+
+  .activity-log-count {
+    color: var(--cake-muted);
+    font-size: 12px;
+  }
+}

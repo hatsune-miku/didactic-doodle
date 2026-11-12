@@ -1,0 +1,44 @@
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(340px, 1.1fr) minmax(300px, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'library inspector'
+    'themes inspector'
+    'actions inspector';
+  column-gap: 20px;
+  row-gap: 12px;
+  height: 100dvh;
+  min-height: 460px;
+  padding: 14px 16px 16px;
+
+  .workspace-library {
+    grid-area: library;
+  }
+
+  .workspace-themes {
+    grid-area: themes;
+  }
+
+  .workspace-actions {
+    grid-area: actions;
+  }
+
+  .workspace-inspector {
+    grid-area: inspector;
+  }
+
+  @media (max-width: 719px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(340px, auto);
+    grid-template-areas:
+      'library'
+      'themes'
+      'actions'
+      'inspector';
+    row-gap: 14px;
+    height: auto;
+    min-height: 100dvh;
+    padding: 12px;
+  }
+}

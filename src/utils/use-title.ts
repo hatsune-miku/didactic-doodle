@@ -1,33 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+
+import { getCurrentWindow } from '@tauri-apps/api/window'
+
 import { getAppVersion } from '../ports/bridge'
-import { useLarkRunning } from './use-lark-running'
 import { useLogsStore } from '../store/logs'
 
 export function useWindowTitle() {
-  const [appVersion, setAppVersion] = useState<string | null>(null)
-  const larkRunning = useLarkRunning()
-  const [windowTitle, setWindowTitle] = useState<string | null>(null)
-
   useEffect(() => {
-    getAppVersion().then((version) => {
-      setAppVersion(version)
-      useLogsStore.getState().add(`当前版本: ${version}`)
-    })
+    getAppVersion()
+      .then(async (version) => {
+        useLogsStore.getState().add(`当前版本: ${version}`)
+        await getCurrentWindow().setTitle(`Wal Assistant Lark · ${version}`)
+      })
+      .catch((error) => useLogsStore.getState().add(`读取版本或设置窗口标题失败: ${String(error)}`))
   }, [])
-
-  useEffect(() => {
-    setWindowTitle(makeTitle(appVersion, larkRunning))
-  }, [appVersion, larkRunning])
-
-  return windowTitle
-}
-
-function makeTitle(appVersion: string | null, larkRunning: boolean) {
-  if (!appVersion) {
-    return 'WalAssistantLark'
-  }
-  if (!larkRunning) {
-    return `WalAssistantLark - v${appVersion}`
-  }
-  return `WalAssistantLark - v${appVersion} - 飞书正在运行`
 }

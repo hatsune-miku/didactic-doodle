@@ -97,9 +97,9 @@ npm run kfc:publish -- --version <版本号>
 macOS 使用：
 
 ```sh
-yarn kfc:pack:macos --version 0.1.7
+yarn kfc:pack:macos --version 0.1.8
 # 可选：--target aarch64-apple-darwin 或 --target x86_64-apple-darwin
-yarn kfc:publish --version 0.1.7
+yarn kfc:publish --version 0.1.8
 ```
 
 Mac ZIP 包包含完整 `.app` 和 `launch.command`。启动脚本会恢复 KFC 解压时丢失的执行权限，并透传启动参数。版本号必须与 `src-tauri/tauri.conf.json` 一致。仅打包不发布时只执行第一条命令。

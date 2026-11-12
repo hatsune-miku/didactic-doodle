@@ -1,7 +1,7 @@
 # kfc-release.ps1 — build + publish wal-assistant-lark to a KFC Hub in one step.
 # Author: gz
 #
-# Usage:  powershell -ExecutionPolicy Bypass -File kfc-release.ps1 -Version 0.1.7
+# Usage:  powershell -ExecutionPolicy Bypass -File kfc-release.ps1 -Version 0.1.8
 #         (optionally pass -Hub / -Token, forwarded to kfc-publish.mjs)
 
 param(

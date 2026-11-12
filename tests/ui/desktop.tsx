@@ -74,7 +74,7 @@ mockIPC(
     const args = payload as Record<string, unknown>
     switch (command) {
       case 'plugin:app|version':
-        return '0.1.7'
+        return '0.1.8'
       case 'plugin:window|set_title':
         return
       case 'get_lark_base_path':
